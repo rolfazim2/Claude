@@ -155,6 +155,40 @@ export function TaskDetail() {
             </Field>
           </div>
 
+          {(project?.customFields?.length ?? 0) > 0 && (
+            <div className="mb-4 divide-y divide-borderSoft rounded-lg border border-border bg-elevated px-3 py-1">
+              {project!.customFields.map((def: any) => {
+                const val = (task.customFields as any)?.[def.id];
+                const save = (v: any) => updateTask(task.id, { customFields: { ...(task.customFields ?? {}), [def.id]: v } });
+                return (
+                  <Field key={def.id} label={def.name}>
+                    {def.type === 'checkbox' ? (
+                      <input type="checkbox" checked={!!val} onChange={(e) => save(e.target.checked)} />
+                    ) : def.type === 'select' ? (
+                      <select className={editCls} value={val ?? ''} onChange={(e) => save(e.target.value)}>
+                        <option value="">—</option>
+                        {def.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : def.type === 'user' ? (
+                      <select className={editCls} value={val ?? ''} onChange={(e) => save(e.target.value)}>
+                        <option value="">—</option>
+                        {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        className={editCls}
+                        type={def.type === 'number' ? 'number' : def.type === 'date' ? 'date' : 'text'}
+                        defaultValue={val ?? ''}
+                        placeholder={def.type === 'url' ? 'https://…' : ''}
+                        onBlur={(e) => e.target.value !== (val ?? '') && save(def.type === 'number' ? Number(e.target.value) : e.target.value)}
+                      />
+                    )}
+                  </Field>
+                );
+              })}
+            </div>
+          )}
+
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-2xs uppercase tracking-wide text-faint">Описание</span>

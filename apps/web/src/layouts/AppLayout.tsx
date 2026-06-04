@@ -7,6 +7,7 @@ import { NewTaskModal } from '../components/NewTaskModal';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { NewFunctionModal } from '../components/NewFunctionModal';
 import { CommandPalette } from '../components/CommandPalette';
+import { NewFieldModal } from '../components/NewFieldModal';
 import { useStore } from '../store';
 
 export function AppLayout() {
@@ -90,6 +91,7 @@ export function AppLayout() {
       <NewProjectModal />
       <NewFunctionModal />
       <CommandPalette />
+      <NewFieldModal />
     </div>
   );
 }

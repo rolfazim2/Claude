@@ -74,6 +74,11 @@ interface AppState {
 
   createProject: (data: Partial<Project>) => Promise<void>;
   createFunction: (data: Partial<FunctionNode>) => Promise<void>;
+  createFieldDef: (projectId: string, data: { name: string; type: string; options?: string[] }) => Promise<void>;
+
+  fieldModal: { open: boolean; projectId: string | null };
+  openFieldModal: (projectId: string) => void;
+  closeFieldModal: () => void;
 
   userById: (id?: string) => User | undefined;
   projectById: (id?: string) => Project | undefined;
@@ -235,6 +240,19 @@ export const useStore = create<AppState>((set, get) => ({
     const created = await api.createFunction(data);
     set((s) => ({ functions: [...s.functions, created] }));
   },
+
+  createFieldDef: async (projectId, data) => {
+    const created = await api.createField(projectId, data);
+    set((s) => ({
+      projects: s.projects.map((p) =>
+        p.id === projectId ? { ...p, customFields: [...(p.customFields ?? []), created as any] } : p,
+      ),
+    }));
+  },
+
+  fieldModal: { open: false, projectId: null },
+  openFieldModal: (projectId) => set({ fieldModal: { open: true, projectId } }),
+  closeFieldModal: () => set({ fieldModal: { open: false, projectId: null } }),
 
   userById: (id) => get().users.find((u) => u.id === id),
   projectById: (id) => get().projects.find((p) => p.id === id),

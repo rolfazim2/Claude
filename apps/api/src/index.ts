@@ -86,7 +86,7 @@ app.get('/bootstrap', async (req, reply) => {
   const [users, functions, projects] = await Promise.all([
     prisma.user.findMany({ orderBy: { fullName: 'asc' } }),
     prisma.function.findMany({ where: { archived: false } }),
-    prisma.project.findMany({ where: { archived: false }, orderBy: { createdAt: 'asc' } }),
+    prisma.project.findMany({ where: { archived: false }, orderBy: { createdAt: 'asc' }, include: { customFields: true } }),
   ]);
   return { me, users, functions, projects };
 });
@@ -117,6 +117,22 @@ app.patch('/projects/:id', async (req, reply) => {
   const data: any = {};
   for (const k of ['name', 'color', 'leadId', 'telegramChatId', 'archived'] as const) if (k in b) data[k] = b[k];
   return prisma.project.update({ where: { id }, data });
+});
+
+app.post('/projects/:id/fields', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  const b = req.body as any;
+  return prisma.customFieldDef.create({
+    data: {
+      projectId: id,
+      name: b.name,
+      type: b.type ?? 'text',
+      options: Array.isArray(b.options) ? b.options : [],
+    },
+  });
 });
 
 // --- Functions (функциональная схема) ---
@@ -236,6 +252,7 @@ app.patch('/tasks/:id', async (req, reply) => {
   if ('assigneeId' in b) data.assigneeId = b.assigneeId;
   if ('dueAt' in b) data.dueAt = b.dueAt ? new Date(b.dueAt) : null;
   if ('status' in b) data.status = b.status;
+  if ('customFields' in b) data.customFields = b.customFields;
 
   const task = await prisma.task.update({ where: { id }, data, include: taskInclude });
 

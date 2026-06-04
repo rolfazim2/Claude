@@ -65,6 +65,8 @@ export const api = {
     req<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
   patchProject: (id: string, data: Record<string, unknown>) =>
     req<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  createField: (projectId: string, data: { name: string; type: string; options?: string[] }) =>
+    req<{ id: string; name: string; type: string; options: string[] }>(`/projects/${projectId}/fields`, { method: 'POST', body: JSON.stringify(data) }),
   createFunction: (data: Partial<FunctionNode>) =>
     req<FunctionNode>('/functions', { method: 'POST', body: JSON.stringify(data) }),
   patchFunction: (id: string, data: Record<string, unknown>) =>

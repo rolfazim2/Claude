@@ -64,6 +64,11 @@ async function main() {
   await T({ id: 't9', title: 'Подготовить пресс-релиз', projectId: 'p3', functionId: 'f3', assigneeId: 'u3', creatorId: 'u2', priority: 'low', status: 'failed', dueAt: days(-5) });
   await T({ id: 't10', title: 'Code review модуля оплаты', projectId: 'p1', functionId: 'f6', assigneeId: 'u5', creatorId: 'u1', priority: 'medium', status: 'in_progress', dueAt: days(1) }, ['u1']);
 
+  // Пример кастомного поля «Сайт» в проекте p1 + значение на задаче t1.
+  await prisma.customFieldDef.deleteMany();
+  const siteField = await prisma.customFieldDef.create({ data: { id: 'cf1', projectId: 'p1', name: 'Сайт', type: 'url', options: [] } });
+  await prisma.task.update({ where: { id: 't1' }, data: { customFields: { [siteField.id]: 'https://example.com' } } });
+
   await prisma.paymentEvent.deleteMany();
   await prisma.paymentEvent.createMany({
     data: [

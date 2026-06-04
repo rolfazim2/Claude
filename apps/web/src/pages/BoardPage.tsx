@@ -22,6 +22,9 @@ export function BoardPage() {
   const users = useStore((s) => s.users);
   const functions = useStore((s) => s.functions);
   const userById = useStore((s) => s.userById);
+  const me = useStore((s) => s.userById(s.currentUserId ?? undefined));
+  const openFieldModal = useStore((s) => s.openFieldModal);
+  const canManage = me?.role === 'super_admin' || me?.role === 'process_lead';
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [query, setQuery] = useState('');
@@ -123,6 +126,11 @@ export function BoardPage() {
         {hasFilters && (
           <button className="text-2xs text-accent hover:underline" onClick={() => { setFAssignee(''); setFPriority(''); setFStatus(''); setFFunction(''); }}>
             Сбросить
+          </button>
+        )}
+        {canManage && (
+          <button className="ml-auto text-2xs text-muted hover:text-text" onClick={() => openFieldModal(project.id)}>
+            + Поле
           </button>
         )}
       </div>
