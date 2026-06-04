@@ -1,0 +1,84 @@
+name: opt-spb-tag-agent
+
+# Почасовой автономный разбор тегов. GitHub Actions выступает «сервером» по расписанию.
+on:
+  schedule:
+    # Каждый час в :05. ВНИМАНИЕ: расписание срабатывает только из ветки по умолчанию
+    # репозитория (ограничение GitHub Actions). До слияния в default-ветку запускайте
+    # вручную через workflow_dispatch.
+    - cron: '5 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Режим прогона'
+        type: choice
+        options: [full, safe, dry-run]
+        default: full
+      max_tags:
+        description: 'Лимит тегов за прогон (0 = без лимита)'
+        default: '0'
+
+concurrency:
+  # Не запускать два прогона одновременно — они конкурируют за очередь.
+  group: opt-spb-agent
+  cancel-in-progress: false
+
+permissions:
+  contents: write # чтобы коммитить отчёты и состояние обратно в ветку
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: opt-spb-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: opt-spb-agent/package-lock.json
+
+      - name: Install deps
+        run: npm ci --ignore-scripts
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run agent
+        env:
+          OPT_SPB_BASE_URL: ${{ vars.OPT_SPB_BASE_URL || 'https://opt-spb.ru' }}
+          OPT_SPB_LOGIN: ${{ secrets.OPT_SPB_LOGIN }}
+          OPT_SPB_PASSWORD: ${{ secrets.OPT_SPB_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AGENT_MODEL: ${{ vars.AGENT_MODEL || 'claude-opus-4-8' }}
+          AGENT_MODE: ${{ github.event.inputs.mode || vars.AGENT_MODE || 'full' }}
+          AGENT_CONFIDENCE_THRESHOLD: ${{ vars.AGENT_CONFIDENCE_THRESHOLD || '0.95' }}
+          AGENT_TIME_BUDGET_MIN: ${{ vars.AGENT_TIME_BUDGET_MIN || '50' }}
+          AGENT_MAX_TAGS: ${{ github.event.inputs.max_tags || vars.AGENT_MAX_TAGS || '0' }}
+          AGENT_HEADLESS: 'true'
+        run: npm run agent
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opt-spb-report-${{ github.run_id }}
+          path: opt-spb-agent/reports/
+          if-no-files-found: ignore
+
+      - name: Commit report and state back to branch
+        if: always()
+        run: |
+          git config user.name "opt-spb-agent[bot]"
+          git config user.email "opt-spb-agent@users.noreply.github.com"
+          git add reports/ state/ || true
+          if ! git diff --cached --quiet; then
+            git commit -m "agent: отчёт прогона $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "Нет изменений для коммита"
+          fi
