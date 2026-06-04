@@ -1,0 +1,17 @@
+{
+  "name": "taskflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Корпоративный таск-менеджер: Telegram-бот + веб-кабинет (single-tenant)",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @taskflow/web dev",
+    "build:web": "pnpm --filter @taskflow/web build",
+    "dev:api": "pnpm --filter @taskflow/api dev",
+    "dev:bot": "pnpm --filter @taskflow/bot dev",
+    "build": "pnpm -r build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
