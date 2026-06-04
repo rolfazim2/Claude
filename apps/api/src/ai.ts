@@ -44,6 +44,34 @@ function template({ title, projectName, functionName }: DescribeInput): string {
     .join('\n');
 }
 
+// --- Разбивка на подзадачи ---
+export async function generateSubtasks(title: string): Promise<string[]> {
+  const key = process.env.CHATPRD_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (key) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 400,
+          messages: [{ role: 'user', content: `Разбей задачу «${title}» на 3–6 конкретных подзадач. Ответ — только JSON-массив строк на русском, без пояснений.` }],
+        }),
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        const text = data.content?.[0]?.text ?? '[]';
+        const arr = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
+        if (Array.isArray(arr)) return arr.map(String).slice(0, 8);
+      }
+    } catch (e) {
+      console.error('subtasks LLM error, fallback', e);
+    }
+  }
+  // Фолбэк-шаблон.
+  return ['Подготовка и сбор данных', 'Выполнение основной части', 'Проверка результата', 'Приложить доказательство'];
+}
+
 // --- Чат-ассистент ---
 interface ChatTask {
   title: string;

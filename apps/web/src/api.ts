@@ -59,6 +59,8 @@ export const api = {
     req<{ description: string }>('/ai/describe', { method: 'POST', body: JSON.stringify(data) }),
   chat: (question: string) =>
     req<{ answer: string }>('/ai/chat', { method: 'POST', body: JSON.stringify({ question }) }),
+  subtasks: (title: string) =>
+    req<{ subtasks: string[] }>('/ai/subtasks', { method: 'POST', body: JSON.stringify({ title }) }),
   createProject: (data: Partial<Project>) =>
     req<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
   patchProject: (id: string, data: Record<string, unknown>) =>

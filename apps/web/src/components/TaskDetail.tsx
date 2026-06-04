@@ -208,7 +208,28 @@ export function TaskDetail() {
           )}
 
           <div className="mb-4">
-            <div className="mb-1.5 text-2xs uppercase tracking-wide text-faint">Подзадачи ({subtasks.length})</div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-2xs uppercase tracking-wide text-faint">Подзадачи ({subtasks.length})</span>
+              <button
+                className="btn-ghost px-1.5 py-0.5 text-2xs disabled:opacity-50"
+                disabled={genBusy}
+                onClick={async () => {
+                  setGenBusy(true);
+                  try {
+                    const { subtasks: items } = await api.subtasks(task.title);
+                    for (const t of items) {
+                      await createTask({ title: t, projectId: task.projectId, functionId: task.functionId, parentTaskId: task.id } as any);
+                    }
+                  } catch (e: any) {
+                    alert(e.message ?? 'Не удалось');
+                  } finally {
+                    setGenBusy(false);
+                  }
+                }}
+              >
+                <Sparkles size={12} /> Разбить (ChatPRD)
+              </button>
+            </div>
             {subtasks.map((st) => (
               <div key={st.id} className="flex items-center gap-2 border-b border-borderSoft py-1.5 text-[13px]">
                 <button onClick={() => setTaskStatus(st.id, st.status === 'done' ? 'to_do' : 'done')} className="text-muted hover:text-text">

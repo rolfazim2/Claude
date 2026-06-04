@@ -8,7 +8,7 @@ import { getCurrentUser, requireUser } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
-import { generateDescription, chatAnswer } from './ai.js';
+import { generateDescription, chatAnswer, generateSubtasks } from './ai.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -331,6 +331,15 @@ app.post('/ai/describe', async (req, reply) => {
   if (!b.title?.trim()) return reply.code(400).send({ error: 'Нужен заголовок' });
   const description = await generateDescription(b);
   return { description };
+});
+
+app.post('/ai/subtasks', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  const { title } = req.body as { title: string };
+  if (!title?.trim()) return reply.code(400).send({ error: 'Нужен заголовок' });
+  const subtasks = await generateSubtasks(title);
+  return { subtasks };
 });
 
 app.post('/ai/chat', async (req, reply) => {
