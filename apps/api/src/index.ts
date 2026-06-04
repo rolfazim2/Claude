@@ -128,6 +128,7 @@ app.post('/tasks', async (req, reply) => {
       description: b.description ?? null,
       projectId: b.projectId,
       functionId: b.functionId ?? null,
+      parentTaskId: b.parentTaskId ?? null,
       assigneeId,
       creatorId: me.id,
       priority: b.priority ?? 'medium',
@@ -171,7 +172,7 @@ app.patch('/tasks/:id', async (req, reply) => {
   }
 
   const data: any = {};
-  for (const k of ['title', 'description', 'priority', 'functionId', 'proofRequired'] as const) {
+  for (const k of ['title', 'description', 'priority', 'functionId', 'proofRequired', 'archived'] as const) {
     if (k in b) data[k] = b[k];
   }
   if ('assigneeId' in b) data.assigneeId = b.assigneeId;

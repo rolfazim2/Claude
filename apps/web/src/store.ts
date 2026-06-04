@@ -52,6 +52,7 @@ interface AppState {
   connectRealtime: () => void;
 
   setTaskStatus: (taskId: string, status: TaskStatus) => Promise<void>;
+  updateTask: (taskId: string, patch: Record<string, unknown>) => Promise<void>;
   createTask: (data: Partial<Task>) => Promise<void>;
   addComment: (taskId: string, body: string) => Promise<void>;
   addProof: (taskId: string, value: string) => Promise<void>;
@@ -145,6 +146,18 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (e: any) {
       set({ tasks: prev });
       alert(e.message ?? 'Не удалось сменить статус');
+    }
+  },
+
+  updateTask: async (taskId, patch) => {
+    const prev = get().tasks;
+    set({ tasks: prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)) });
+    try {
+      const updated = await api.patchTask(taskId, patch);
+      set((s) => ({ tasks: s.tasks.map((t) => (t.id === taskId ? updated : t)) }));
+    } catch (e: any) {
+      set({ tasks: prev });
+      alert(e.message ?? 'Не удалось сохранить');
     }
   },
 
