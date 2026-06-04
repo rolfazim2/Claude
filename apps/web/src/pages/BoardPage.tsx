@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { LayoutGrid, List as ListIcon, Search, Repeat, Hash, ArrowUpDown } from 'lucide-react';
-import { PRIORITY_META, isOverdue, type Task } from '@taskflow/shared';
+import {
+  PRIORITY_META,
+  STATUS_META,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  isOverdue,
+  type Task,
+} from '@taskflow/shared';
 import { useStore } from '../store';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { TaskRow } from '../components/TaskRow';
@@ -12,11 +19,17 @@ export function BoardPage() {
   const { projectId } = useParams();
   const project = useStore((s) => s.projectById(projectId));
   const allTasks = useStore((s) => s.tasks);
+  const users = useStore((s) => s.users);
+  const functions = useStore((s) => s.functions);
   const userById = useStore((s) => s.userById);
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('priority');
+  const [fAssignee, setFAssignee] = useState('');
+  const [fPriority, setFPriority] = useState('');
+  const [fStatus, setFStatus] = useState('');
+  const [fFunction, setFFunction] = useState('');
 
   const tasks = useMemo(() => {
     let list = allTasks.filter((t) => t.projectId === projectId && !t.archived);
@@ -24,8 +37,15 @@ export function BoardPage() {
       const q = query.toLowerCase();
       list = list.filter((t) => t.title.toLowerCase().includes(q));
     }
+    if (fAssignee) list = list.filter((t) => t.assigneeId === fAssignee);
+    if (fPriority) list = list.filter((t) => t.priority === fPriority);
+    if (fStatus) list = list.filter((t) => t.status === fStatus);
+    if (fFunction) list = list.filter((t) => t.functionId === fFunction);
     return sortTasks(list, sort, userById);
-  }, [allTasks, projectId, query, sort, userById]);
+  }, [allTasks, projectId, query, sort, fAssignee, fPriority, fStatus, fFunction, userById]);
+
+  const hasFilters = fAssignee || fPriority || fStatus || fFunction;
+  const filterCls = 'rounded-md border border-border bg-elevated px-2 py-1 text-2xs text-muted outline-none focus:border-accent';
 
   if (!project) return <div className="p-6 text-muted">Проект не найден</div>;
 
@@ -79,6 +99,32 @@ export function BoardPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* filter bar */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-4 py-1.5">
+        <span className="text-2xs uppercase tracking-wide text-faint">Фильтры:</span>
+        <select className={filterCls} value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
+          <option value="">Исполнитель</option>
+          {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+        </select>
+        <select className={filterCls} value={fPriority} onChange={(e) => setFPriority(e.target.value)}>
+          <option value="">Приоритет</option>
+          {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
+        </select>
+        <select className={filterCls} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+          <option value="">Статус</option>
+          {TASK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
+        </select>
+        <select className={filterCls} value={fFunction} onChange={(e) => setFFunction(e.target.value)}>
+          <option value="">Функция</option>
+          {functions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        {hasFilters && (
+          <button className="text-2xs text-accent hover:underline" onClick={() => { setFAssignee(''); setFPriority(''); setFStatus(''); setFFunction(''); }}>
+            Сбросить
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">

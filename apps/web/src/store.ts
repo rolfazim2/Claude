@@ -47,6 +47,9 @@ interface AppState {
   composerOpen: boolean;
   setComposerOpen: (open: boolean) => void;
 
+  paletteOpen: boolean;
+  setPaletteOpen: (open: boolean) => void;
+
   projectModalOpen: boolean;
   setProjectModalOpen: (open: boolean) => void;
   functionModal: { open: boolean; parentId: string | null };
@@ -105,6 +108,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   composerOpen: false,
   setComposerOpen: (open) => set({ composerOpen: open }),
+
+  paletteOpen: false,
+  setPaletteOpen: (open) => set({ paletteOpen: open }),
 
   projectModalOpen: false,
   setProjectModalOpen: (open) => set({ projectModalOpen: open }),

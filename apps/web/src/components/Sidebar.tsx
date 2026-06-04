@@ -43,7 +43,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <span className="font-semibold">TaskFlow</span>
       </div>
 
-      <button className="mx-3 mb-1 flex items-center gap-2 rounded-md border border-border bg-elevated px-2.5 py-1.5 text-[13px] text-muted hover:text-text">
+      <button
+        onClick={() => useStore.getState().setPaletteOpen(true)}
+        className="mx-3 mb-1 flex items-center gap-2 rounded-md border border-border bg-elevated px-2.5 py-1.5 text-[13px] text-muted hover:text-text"
+      >
         <Search size={14} /> Поиск
         <kbd className="ml-auto rounded bg-hover px-1.5 text-2xs text-faint">⌘K</kbd>
       </button>

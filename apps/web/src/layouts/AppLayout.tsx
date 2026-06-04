@@ -6,6 +6,7 @@ import { TaskDetail } from '../components/TaskDetail';
 import { NewTaskModal } from '../components/NewTaskModal';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { NewFunctionModal } from '../components/NewFunctionModal';
+import { CommandPalette } from '../components/CommandPalette';
 import { useStore } from '../store';
 
 export function AppLayout() {
@@ -16,6 +17,7 @@ export function AppLayout() {
   const error = useStore((s) => s.error);
   const loadAll = useStore((s) => s.loadAll);
   const connectRealtime = useStore((s) => s.connectRealtime);
+  const setPaletteOpen = useStore((s) => s.setPaletteOpen);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -26,6 +28,17 @@ export function AppLayout() {
       loadAll().then(() => connectRealtime());
     }
   }, [currentUserId]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (!currentUserId) return null;
 
@@ -76,6 +89,7 @@ export function AppLayout() {
       <NewTaskModal />
       <NewProjectModal />
       <NewFunctionModal />
+      <CommandPalette />
     </div>
   );
 }
