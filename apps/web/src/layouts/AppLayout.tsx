@@ -4,6 +4,8 @@ import { Menu } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { TaskDetail } from '../components/TaskDetail';
 import { NewTaskModal } from '../components/NewTaskModal';
+import { NewProjectModal } from '../components/NewProjectModal';
+import { NewFunctionModal } from '../components/NewFunctionModal';
 import { useStore } from '../store';
 
 export function AppLayout() {
@@ -72,6 +74,8 @@ export function AppLayout() {
 
       <TaskDetail />
       <NewTaskModal />
+      <NewProjectModal />
+      <NewFunctionModal />
     </div>
   );
 }

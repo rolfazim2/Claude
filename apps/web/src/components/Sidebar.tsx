@@ -31,6 +31,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
   const setComposerOpen = useStore((s) => s.setComposerOpen);
+  const setProjectModalOpen = useStore((s) => s.setProjectModalOpen);
+  const canManage = user?.role === 'super_admin' || user?.role === 'process_lead';
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -75,8 +77,19 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
       <div className="mt-5 px-3">
-        <div className="px-2 pb-1 text-2xs font-semibold uppercase tracking-wide text-faint">
-          Проекты и процессы
+        <div className="flex items-center px-2 pb-1">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
+            Проекты и процессы
+          </span>
+          {canManage && (
+            <button
+              onClick={() => setProjectModalOpen(true)}
+              className="ml-auto text-faint hover:text-text"
+              title="Новый проект / процесс"
+            >
+              <Plus size={14} />
+            </button>
+          )}
         </div>
         <nav className="flex flex-col gap-0.5" onClick={onClose}>
           {projects.map((p) => (

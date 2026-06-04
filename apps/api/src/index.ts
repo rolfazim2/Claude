@@ -91,6 +91,63 @@ app.get('/bootstrap', async (req, reply) => {
   return { me, users, functions, projects };
 });
 
+// --- Projects (управление) ---
+app.post('/projects', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const b = req.body as any;
+  return prisma.project.create({
+    data: {
+      type: b.type === 'process' ? 'process' : 'project',
+      name: b.name,
+      color: b.color ?? '#5e6ad2',
+      leadId: b.leadId ?? null,
+      telegramChatId: b.telegramChatId ?? null,
+    },
+  });
+});
+
+app.patch('/projects/:id', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  const b = req.body as any;
+  const data: any = {};
+  for (const k of ['name', 'color', 'leadId', 'telegramChatId', 'archived'] as const) if (k in b) data[k] = b[k];
+  return prisma.project.update({ where: { id }, data });
+});
+
+// --- Functions (функциональная схема) ---
+app.post('/functions', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const b = req.body as any;
+  return prisma.function.create({
+    data: {
+      name: b.name,
+      description: b.description ?? null,
+      expectedResult: b.expectedResult ?? null,
+      parentId: b.parentId ?? null,
+      responsibleUserId: b.responsibleUserId ?? null,
+    },
+  });
+});
+
+app.patch('/functions/:id', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  const b = req.body as any;
+  const data: any = {};
+  for (const k of ['name', 'description', 'expectedResult', 'parentId', 'responsibleUserId', 'archived'] as const)
+    if (k in b) data[k] = b[k];
+  return prisma.function.update({ where: { id }, data });
+});
+
 // --- Tasks ---
 app.get('/tasks', async (req, reply) => {
   const me = await requireUser(req, reply);

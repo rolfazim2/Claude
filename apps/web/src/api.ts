@@ -57,6 +57,14 @@ export const api = {
     req<Task>(`/tasks/${id}/attachments`, { method: 'POST', body: JSON.stringify(data) }),
   describe: (data: { title: string; projectName?: string; functionName?: string }) =>
     req<{ description: string }>('/ai/describe', { method: 'POST', body: JSON.stringify(data) }),
+  createProject: (data: Partial<Project>) =>
+    req<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  patchProject: (id: string, data: Record<string, unknown>) =>
+    req<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  createFunction: (data: Partial<FunctionNode>) =>
+    req<FunctionNode>('/functions', { method: 'POST', body: JSON.stringify(data) }),
+  patchFunction: (id: string, data: Record<string, unknown>) =>
+    req<FunctionNode>(`/functions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   payments: () => req<PaymentEvent[]>('/payments'),
   createPayment: (data: Partial<PaymentEvent>) =>
     req<PaymentEvent>('/payments', { method: 'POST', body: JSON.stringify(data) }),

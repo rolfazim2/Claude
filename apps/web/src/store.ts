@@ -47,6 +47,12 @@ interface AppState {
   composerOpen: boolean;
   setComposerOpen: (open: boolean) => void;
 
+  projectModalOpen: boolean;
+  setProjectModalOpen: (open: boolean) => void;
+  functionModal: { open: boolean; parentId: string | null };
+  openFunctionModal: (parentId: string | null) => void;
+  closeFunctionModal: () => void;
+
   login: (userId: string) => Promise<void>;
   logout: () => void;
   loadAll: () => Promise<void>;
@@ -62,6 +68,9 @@ interface AppState {
 
   createPayment: (data: Partial<PaymentEvent>) => Promise<void>;
   markPaymentPaid: (id: string) => Promise<void>;
+
+  createProject: (data: Partial<Project>) => Promise<void>;
+  createFunction: (data: Partial<FunctionNode>) => Promise<void>;
 
   userById: (id?: string) => User | undefined;
   projectById: (id?: string) => Project | undefined;
@@ -96,6 +105,12 @@ export const useStore = create<AppState>((set, get) => ({
 
   composerOpen: false,
   setComposerOpen: (open) => set({ composerOpen: open }),
+
+  projectModalOpen: false,
+  setProjectModalOpen: (open) => set({ projectModalOpen: open }),
+  functionModal: { open: false, parentId: null },
+  openFunctionModal: (parentId) => set({ functionModal: { open: true, parentId } }),
+  closeFunctionModal: () => set({ functionModal: { open: false, parentId: null } }),
 
   login: async (userId) => {
     localStorage.setItem('userId', userId);
@@ -203,6 +218,16 @@ export const useStore = create<AppState>((set, get) => ({
   markPaymentPaid: async (id) => {
     const updated = await api.patchPayment(id, { status: 'paid' });
     set((s) => ({ payments: s.payments.map((p) => (p.id === id ? updated : p)) }));
+  },
+
+  createProject: async (data) => {
+    const created = await api.createProject(data);
+    set((s) => ({ projects: [...s.projects, created] }));
+  },
+
+  createFunction: async (data) => {
+    const created = await api.createFunction(data);
+    set((s) => ({ functions: [...s.functions, created] }));
   },
 
   userById: (id) => get().users.find((u) => u.id === id),

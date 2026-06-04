@@ -10,6 +10,7 @@ function Node({ node, depth }: { node: FunctionNode; depth: number }) {
   const tasks = useStore((s) => s.tasks);
   const taskCount = tasks.filter((t) => t.functionId === node.id && !t.archived).length;
   const children = functions.filter((f) => f.parentId === node.id);
+  const openFunctionModal = useStore((s) => s.openFunctionModal);
   const [open, setOpen] = useState(true);
 
   return (
@@ -41,6 +42,13 @@ function Node({ node, depth }: { node: FunctionNode; depth: number }) {
           <Avatar user={responsible} size={22} />
           <span className="hidden text-2xs text-faint sm:inline">{responsible?.fullName}</span>
         </div>
+        <button
+          onClick={() => openFunctionModal(node.id)}
+          className="text-faint hover:text-text"
+          title="Добавить подфункцию"
+        >
+          <Plus size={14} />
+        </button>
       </div>
       {open && children.length > 0 && (
         <div className="mt-1.5 flex flex-col gap-1.5">
@@ -55,6 +63,7 @@ function Node({ node, depth }: { node: FunctionNode; depth: number }) {
 
 export function Scheme() {
   const functions = useStore((s) => s.functions);
+  const openFunctionModal = useStore((s) => s.openFunctionModal);
   const roots = functions.filter((f) => f.parentId === null && !f.archived);
 
   return (
@@ -62,7 +71,7 @@ export function Scheme() {
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
         <h1 className="text-[15px] font-semibold">Функциональная схема</h1>
         <span className="text-2xs text-faint">от функций — к исполнителям</span>
-        <button className="btn-ghost ml-auto border border-border">
+        <button className="btn-ghost ml-auto border border-border" onClick={() => openFunctionModal(null)}>
           <Plus size={14} /> Функция
         </button>
       </div>
