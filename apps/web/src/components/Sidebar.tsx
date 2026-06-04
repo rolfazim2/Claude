@@ -32,6 +32,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
+  const logout = useStore((s) => s.logout);
   const setComposerOpen = useStore((s) => s.setComposerOpen);
   const setProjectModalOpen = useStore((s) => s.setProjectModalOpen);
   const canManage = user?.role === 'super_admin' || user?.role === 'process_lead';
@@ -116,19 +117,31 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </nav>
       </div>
 
-      <div className="mt-auto flex items-center gap-2 border-t border-border px-3 py-2.5">
-        <Avatar user={user} size={26} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px]">{user?.fullName}</div>
-          <div className="truncate text-2xs text-faint">{user?.position}</div>
-        </div>
+      <div className="mt-auto border-t border-border">
+        {/* Явный переключатель темы */}
         <button
           onClick={toggleTheme}
-          className="btn-ghost px-1.5 py-1"
-          title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-hover hover:text-text"
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+          <span className="ml-auto flex items-center gap-1 text-2xs text-faint">
+            <span className={theme === 'light' ? 'text-accent' : ''}>Светлая</span>
+            /
+            <span className={theme === 'dark' ? 'text-accent' : ''}>Тёмная</span>
+          </span>
         </button>
+
+        <div className="flex items-center gap-2 border-t border-border px-3 py-2.5">
+          <Avatar user={user} size={26} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px]">{user?.fullName}</div>
+            <div className="truncate text-2xs text-faint">{user?.position}</div>
+          </div>
+          <button onClick={logout} className="btn-ghost px-1.5 py-1 text-2xs" title="Выйти">
+            Выйти
+          </button>
+        </div>
       </div>
     </aside>
   );
