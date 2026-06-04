@@ -10,6 +10,7 @@ import { TagQueue } from './browser/queue.js';
 import { ProductSearch } from './browser/search.js';
 import { Binder } from './browser/bind.js';
 import { ImagePipeline } from './browser/image.js';
+import { YandexImages } from './browser/yandex.js';
 import { ProductCreator } from './browser/create.js';
 import { Decider } from './matching/decide.js';
 import { parseTag } from './matching/parse.js';
@@ -40,7 +41,8 @@ async function main(): Promise<void> {
     const search = new ProductSearch(session);
     const decider = new Decider(cfg);
     const image = new ImagePipeline(session);
-    const creator = new ProductCreator(session, image);
+    const yandex = new YandexImages(session, decider);
+    const creator = new ProductCreator(session, image, yandex, cfg.imageSource);
     const binder = new Binder(session, queue);
 
     await queue.open();
@@ -121,7 +123,7 @@ async function main(): Promise<void> {
             reviewed.add(tagKey(row.tag, row.supplierId));
             continue;
           }
-          const res = await creator.create(tag, decision.title, candidates);
+          const res = await creator.create(tag, decision.title, decision.imageQuery, candidates);
           if (res.created && res.productId) {
             // Создали карточку — теперь привязываем тег к ней реальным кликом.
             const term = bestSearchTerm(tag, decision.title);

@@ -59,6 +59,7 @@ jobs:
           AGENT_CONFIDENCE_THRESHOLD: ${{ vars.AGENT_CONFIDENCE_THRESHOLD || '0.95' }}
           AGENT_TIME_BUDGET_MIN: ${{ vars.AGENT_TIME_BUDGET_MIN || '50' }}
           AGENT_MAX_TAGS: ${{ github.event.inputs.max_tags || vars.AGENT_MAX_TAGS || '0' }}
+          AGENT_IMAGE_SOURCE: ${{ vars.AGENT_IMAGE_SOURCE || 'analog+yandex' }}
           AGENT_HEADLESS: 'true'
         run: npm run agent
 

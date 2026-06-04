@@ -6,6 +6,8 @@
 
 import type { AdminSession } from './session.js';
 import type { ImagePipeline } from './image.js';
+import type { YandexImages } from './yandex.js';
+import type { ImageSource } from '../config.js';
 import type { ProductCandidate, TagConfig } from '../types.js';
 import { ROM_FILTER, RAM_FILTER, COLOR_FILTER, COUNTRY_FILTER, CATEGORY_ANCHORS, MANUFACTURERS } from '../knowledge/filters.js';
 import { canonicalColor, colorSynonyms } from '../knowledge/colors.js';
@@ -38,9 +40,14 @@ const TYPE_TO_MPN: Record<string, string> = {
 };
 
 export class ProductCreator {
-  constructor(private s: AdminSession, private img: ImagePipeline) {}
+  constructor(
+    private s: AdminSession,
+    private img: ImagePipeline,
+    private yandex: YandexImages,
+    private imageSource: ImageSource,
+  ) {}
 
-  async create(tag: TagConfig, title: string, analogCandidates: ProductCandidate[]): Promise<CreateResult> {
+  async create(tag: TagConfig, title: string, imageQuery: string, analogCandidates: ProductCandidate[]): Promise<CreateResult> {
     // 1) Найти аналог той же модели → категория/производитель.
     const analog = await this.pickAnalog(tag, analogCandidates);
     if (!analog) {
@@ -53,8 +60,8 @@ export class ProductCreator {
       return { created: false, needsReview: true, reason: `неизвестные значения фильтров: ${filters.missing.join(', ')} — нужно добавить в filters.ts или создать на сайте` };
     }
 
-    // 3) Картинка: переиспользуем у аналога ТОГО ЖЕ цвета, иначе review.
-    const imagePath = await this.resolveImage(tag, analog);
+    // 3) Картинка: аналог того же цвета → иначе Яндекс с vision-проверкой → иначе review.
+    const imagePath = await this.resolveImage(tag, analog, imageQuery);
     if (!imagePath) {
       return { created: false, needsReview: true, reason: 'нет точной картинки нужного цвета (правило 6.4: случайную ставить нельзя)' };
     }
@@ -178,11 +185,22 @@ export class ProductCreator {
   }
 
   // ── картинка ────────────────────────────────────────────────────────────────
-  private async resolveImage(tag: TagConfig, analog: Analog): Promise<string | null> {
-    // Картинку берём ТОЛЬКО у аналога ТОГО ЖЕ цвета (правило 6.4).
-    if (!tag.colorRu || !this.nameHasColor(analog.name, tag.colorRu)) return null;
-    if (analog.image) return analog.image;
-    if (analog.productId > 0) return this.img.readProductImage(analog.productId);
+  private async resolveImage(tag: TagConfig, analog: Analog, imageQuery: string): Promise<string | null> {
+    // (а) Аналог ТОГО ЖЕ цвета — самый надёжный и бесплатный источник.
+    if (this.imageSource !== 'yandex' && tag.colorRu && this.nameHasColor(analog.name, tag.colorRu)) {
+      const fromAnalog = analog.image ?? (analog.productId > 0 ? await this.img.readProductImage(analog.productId) : null);
+      if (fromAnalog) return fromAnalog;
+    }
+    // (б) Яндекс.Картинки с обязательной vision-проверкой цвета/модели.
+    if (this.imageSource === 'yandex' || this.imageSource === 'analog+yandex') {
+      const query = imageQuery || this.yandex.buildQuery(tag);
+      const url = await this.yandex.findVerifiedImage(tag, query);
+      if (url) {
+        const fileName = `${this.seoKeyword(tag.model ?? tag.raw)}.jpg`.replace(/[^a-z0-9.\-]/gi, '_');
+        const uploaded = await this.img.uploadFromUrl(url, fileName);
+        if (uploaded) return uploaded;
+      }
+    }
     return null;
   }
   private nameHasColor(name: string, colorRu: string): boolean {

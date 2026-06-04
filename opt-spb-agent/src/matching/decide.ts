@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Config } from '../config.js';
 import type { Decision, ProductCandidate, TagConfig } from '../types.js';
 import { TYPE_LABEL } from '../types.js';
-import { RULEBOOK_SYSTEM_PROMPT } from '../knowledge/rules.js';
+import { RULEBOOK_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT } from '../knowledge/rules.js';
 import { strictFilter } from './verify.js';
 import { log } from '../logger.js';
 
@@ -49,6 +49,33 @@ export class Decider {
       .map((b) => b.text)
       .join('');
     return this.parseDecision(raw, tag, passed);
+  }
+
+  /** Vision-проверка: на картинке именно эта модель и именно этот цвет? (правило 6.4) */
+  async verifyImageMatch(tag: TagConfig, imageUrl: string): Promise<{ match: boolean; confidence: number; reason: string }> {
+    const desc = [tag.brand, tag.model ?? tag.generation, tag.storageRaw].filter(Boolean).join(' ');
+    const wantColor = tag.colorRu ? `${tag.colorRu}${tag.colorEn ? ` (${tag.colorEn})` : ''}` : 'не задан';
+    const resp = await this.client.messages.create({
+      model: this.cfg.model,
+      max_tokens: 200,
+      system: [{ type: 'text', text: VISION_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: `Товар: «${desc}». Требуемый цвет: ${wantColor}. Это фото подходит для карточки?` },
+            { type: 'image', source: { type: 'url', url: imageUrl } },
+          ],
+        },
+      ],
+    });
+    const raw = resp.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const json = extractJson(raw);
+    if (!json) return { match: false, confidence: 0, reason: 'не разобран ответ vision' };
+    return { match: Boolean(json.match), confidence: clamp01(Number(json.confidence ?? 0)), reason: String(json.reason ?? '') };
   }
 
   private buildUserPrompt(tag: TagConfig, passed: ProductCandidate[], rejected: Array<{ cand: ProductCandidate; reason: string }>): string {

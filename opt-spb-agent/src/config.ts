@@ -3,6 +3,7 @@
 import 'dotenv/config';
 
 export type AgentMode = 'safe' | 'full' | 'dry-run';
+export type ImageSource = 'analog' | 'yandex' | 'analog+yandex';
 
 export interface Config {
   baseUrl: string;
@@ -15,6 +16,7 @@ export interface Config {
   timeBudgetMs: number;
   maxTags: number; // 0 = без лимита
   headless: boolean;
+  imageSource: ImageSource; // откуда брать картинку при создании карточки
 }
 
 function req(name: string): string {
@@ -28,6 +30,10 @@ export function loadConfig(): Config {
   if (!['safe', 'full', 'dry-run'].includes(mode)) {
     throw new Error(`AGENT_MODE должен быть safe|full|dry-run, получено «${mode}»`);
   }
+  const imageSource = (process.env.AGENT_IMAGE_SOURCE ?? 'analog+yandex') as ImageSource;
+  if (!['analog', 'yandex', 'analog+yandex'].includes(imageSource)) {
+    throw new Error(`AGENT_IMAGE_SOURCE должен быть analog|yandex|analog+yandex, получено «${imageSource}»`);
+  }
   return {
     baseUrl: (process.env.OPT_SPB_BASE_URL ?? 'https://opt-spb.ru').replace(/\/+$/, ''),
     login: req('OPT_SPB_LOGIN'),
@@ -39,5 +45,6 @@ export function loadConfig(): Config {
     timeBudgetMs: Number(process.env.AGENT_TIME_BUDGET_MIN ?? '50') * 60_000,
     maxTags: Number(process.env.AGENT_MAX_TAGS ?? '0'),
     headless: (process.env.AGENT_HEADLESS ?? 'true') !== 'false',
+    imageSource,
   };
 }
