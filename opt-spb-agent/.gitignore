@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Артефакты прогонов (отчёты коммитятся отдельно через workflow, локальный мусор — нет)
+playwright-report/
+test-results/
+/tmp-screenshots/
+*.har
