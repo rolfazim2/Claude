@@ -8,7 +8,7 @@ import { getCurrentUser, requireUser } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
-import { generateDescription } from './ai.js';
+import { generateDescription, chatAnswer } from './ai.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -331,6 +331,23 @@ app.post('/ai/describe', async (req, reply) => {
   if (!b.title?.trim()) return reply.code(400).send({ error: 'Нужен заголовок' });
   const description = await generateDescription(b);
   return { description };
+});
+
+app.post('/ai/chat', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  const { question } = req.body as { question: string };
+  if (!question?.trim()) return reply.code(400).send({ error: 'Пустой вопрос' });
+  const tasks = await prisma.task.findMany({
+    where: { AND: [taskVisibilityWhere(me.id, me.role), { archived: false }] },
+    select: { title: true, status: true, priority: true, dueAt: true },
+    take: 200,
+  });
+  const answer = await chatAnswer(
+    question,
+    tasks.map((t) => ({ title: t.title, status: t.status, priority: t.priority, dueAt: t.dueAt ? t.dueAt.toISOString() : null })),
+  );
+  return { answer };
 });
 
 // --- Notifications ---

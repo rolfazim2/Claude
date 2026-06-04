@@ -9,6 +9,7 @@ import { Reports } from './pages/Reports';
 import { CalendarPage } from './pages/CalendarPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { People, EmployeeCard } from './pages/People';
+import { Assistant } from './pages/Assistant';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/assistant" element={<Assistant />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

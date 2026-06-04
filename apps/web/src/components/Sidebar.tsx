@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Wallet,
   Users,
+  Sparkles,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
@@ -80,6 +81,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </NavLink>
         <NavLink to="/reports" className={navClass}>
           <BarChart3 size={16} /> Отчёты
+        </NavLink>
+        <NavLink to="/assistant" className={navClass}>
+          <Sparkles size={16} /> Ассистент
         </NavLink>
       </nav>
 
