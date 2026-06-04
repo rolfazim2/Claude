@@ -24,10 +24,11 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const projects = useStore((s) => s.projects);
-  const user = useStore((s) => s.userById(s.currentUserId));
+  const user = useStore((s) => s.userById(s.currentUserId ?? undefined));
   const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
+  const setComposerOpen = useStore((s) => s.setComposerOpen);
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -43,7 +44,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <kbd className="ml-auto rounded bg-hover px-1.5 text-2xs text-faint">⌘K</kbd>
       </button>
 
-      <button className="btn-primary mx-3 mb-3 mt-1">
+      <button className="btn-primary mx-3 mb-3 mt-1" onClick={() => setComposerOpen(true)}>
         <Plus size={15} /> Новая задача
       </button>
 

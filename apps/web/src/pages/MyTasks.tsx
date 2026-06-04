@@ -43,7 +43,7 @@ function Section({ title, tasks, accent }: { title: string; tasks: Task[]; accen
 }
 
 export function MyTasks() {
-  const me = useStore((s) => s.currentUserId);
+  const me = useStore((s) => s.currentUserId) ?? '';
   const allTasks = useStore((s) => s.tasks);
 
   const mine = useMemo(

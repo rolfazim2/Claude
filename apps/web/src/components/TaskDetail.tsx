@@ -6,6 +6,7 @@ import {
   CornerDownRight,
   Send,
 } from 'lucide-react';
+import { useState } from 'react';
 import {
   PRIORITY_META,
   RECURRENCE_META,
@@ -38,7 +39,12 @@ export function TaskDetail() {
   const project = useStore((s) => s.projectById(task?.projectId));
   const users = useStore((s) => s.users);
   const allTasks = useStore((s) => s.tasks);
+  const addComment = useStore((s) => s.addComment);
+  const addProof = useStore((s) => s.addProof);
   const subtasks = allTasks.filter((t) => t.parentTaskId === taskId);
+
+  const [comment, setComment] = useState('');
+  const [proof, setProof] = useState('');
 
   if (!task) return null;
   const due = formatDue(task.dueAt);
@@ -137,9 +143,40 @@ export function TaskDetail() {
 
           {/* proof */}
           {task.proofRequired && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#f2c94c]/30 bg-[#f2c94c]/5 px-3 py-2 text-2xs text-[#f2c94c]">
-              <ShieldCheck size={14} />
-              Требуется доказательство выполнения (текст / ссылка / скриншот), иначе задачу нельзя закрыть.
+            <div className="mb-4 rounded-lg border border-[#f2c94c]/30 bg-[#f2c94c]/5 px-3 py-2.5">
+              <div className="mb-2 flex items-center gap-2 text-2xs text-[#f2c94c]">
+                <ShieldCheck size={14} />
+                Требуется доказательство выполнения (текст / ссылка / скриншот), иначе задачу нельзя закрыть.
+              </div>
+              {task.attachments.filter((a) => a.kind === 'completion_proof').length > 0 && (
+                <div className="mb-2 flex flex-col gap-1">
+                  {task.attachments
+                    .filter((a) => a.kind === 'completion_proof')
+                    .map((a) => (
+                      <div key={a.id} className="rounded bg-elevated px-2 py-1 text-2xs text-muted">
+                        ✓ {a.value}
+                      </div>
+                    ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  value={proof}
+                  onChange={(e) => setProof(e.target.value)}
+                  placeholder="Доказательство: текст или ссылка…"
+                  className="flex-1 rounded-md border border-border bg-surface px-2 py-1 text-[13px] outline-none focus:border-accent"
+                />
+                <button
+                  className="btn-ghost border border-border"
+                  disabled={!proof.trim()}
+                  onClick={async () => {
+                    await addProof(task.id, proof.trim());
+                    setProof('');
+                  }}
+                >
+                  Приложить
+                </button>
+              </div>
             </div>
           )}
 
@@ -182,15 +219,26 @@ export function TaskDetail() {
                 );
               })}
             </div>
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5">
+            <form
+              className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!comment.trim()) return;
+                const body = comment.trim();
+                setComment('');
+                await addComment(task.id, body);
+              }}
+            >
               <input
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
                 placeholder="Написать комментарий…"
                 className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
               />
-              <button className="btn-ghost px-1.5 py-1">
+              <button type="submit" className="btn-ghost px-1.5 py-1">
                 <Send size={15} />
               </button>
-            </div>
+            </form>
           </div>
         </div>
 
