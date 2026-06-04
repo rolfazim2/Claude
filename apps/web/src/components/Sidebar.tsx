@@ -12,6 +12,7 @@ import {
   Moon,
   CalendarDays,
   Wallet,
+  Users,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
@@ -67,6 +68,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </NavLink>
         <NavLink to="/scheme" className={navClass}>
           <Network size={16} /> Функциональная схема
+        </NavLink>
+        <NavLink to="/people" className={navClass}>
+          <Users size={16} /> Сотрудники
         </NavLink>
         <NavLink to="/calendar" className={navClass}>
           <CalendarDays size={16} /> Календарь

@@ -8,6 +8,7 @@ import { Scheme } from './pages/Scheme';
 import { Reports } from './pages/Reports';
 import { CalendarPage } from './pages/CalendarPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { People, EmployeeCard } from './pages/People';
 
 export default function App() {
   return (
@@ -18,6 +19,8 @@ export default function App() {
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/board/:projectId" element={<BoardPage />} />
         <Route path="/scheme" element={<Scheme />} />
+        <Route path="/people" element={<People />} />
+        <Route path="/people/:id" element={<EmployeeCard />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/reports" element={<Reports />} />
