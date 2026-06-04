@@ -6,6 +6,7 @@ import { Inbox } from './pages/Inbox';
 import { BoardPage } from './pages/BoardPage';
 import { Scheme } from './pages/Scheme';
 import { Reports } from './pages/Reports';
+import { CalendarPage } from './pages/CalendarPage';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/board/:projectId" element={<BoardPage />} />
         <Route path="/scheme" element={<Scheme />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/reports" element={<Reports />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
