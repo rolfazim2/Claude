@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   AppNotification,
   FunctionNode,
+  PaymentEvent,
   Project,
   Task,
   TaskStatus,
@@ -38,6 +39,7 @@ interface AppState {
   projects: Project[];
   tasks: Task[];
   notifications: AppNotification[];
+  payments: PaymentEvent[];
 
   selectedTaskId: string | null;
   selectTask: (id: string | null) => void;
@@ -57,6 +59,9 @@ interface AppState {
   addComment: (taskId: string, body: string) => Promise<void>;
   addProof: (taskId: string, value: string) => Promise<void>;
   markNotificationRead: (id: string) => void;
+
+  createPayment: (data: Partial<PaymentEvent>) => Promise<void>;
+  markPaymentPaid: (id: string) => Promise<void>;
 
   userById: (id?: string) => User | undefined;
   projectById: (id?: string) => Project | undefined;
@@ -84,6 +89,7 @@ export const useStore = create<AppState>((set, get) => ({
   projects: [],
   tasks: [],
   notifications: [],
+  payments: [],
 
   selectedTaskId: null,
   selectTask: (id) => set({ selectedTaskId: id }),
@@ -106,10 +112,11 @@ export const useStore = create<AppState>((set, get) => ({
 
   loadAll: async () => {
     try {
-      const [boot, tasks, notifications] = await Promise.all([
+      const [boot, tasks, notifications, payments] = await Promise.all([
         api.bootstrap(),
         api.tasks(),
         api.notifications(),
+        api.payments().catch(() => []),
       ]);
       set({
         users: boot.users,
@@ -117,6 +124,7 @@ export const useStore = create<AppState>((set, get) => ({
         projects: boot.projects,
         tasks,
         notifications,
+        payments,
         loaded: true,
         error: null,
       });
@@ -185,6 +193,16 @@ export const useStore = create<AppState>((set, get) => ({
       notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
     }));
     api.readNotification(id).catch(() => {});
+  },
+
+  createPayment: async (data) => {
+    const created = await api.createPayment(data);
+    set((s) => ({ payments: [...s.payments, created].sort((a, b) => a.dueDate.localeCompare(b.dueDate)) }));
+  },
+
+  markPaymentPaid: async (id) => {
+    const updated = await api.patchPayment(id, { status: 'paid' });
+    set((s) => ({ payments: s.payments.map((p) => (p.id === id ? updated : p)) }));
   },
 
   userById: (id) => get().users.find((u) => u.id === id),

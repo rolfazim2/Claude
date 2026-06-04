@@ -64,6 +64,17 @@ async function main() {
   await T({ id: 't9', title: 'Подготовить пресс-релиз', projectId: 'p3', functionId: 'f3', assigneeId: 'u3', creatorId: 'u2', priority: 'low', status: 'failed', dueAt: days(-5) });
   await T({ id: 't10', title: 'Code review модуля оплаты', projectId: 'p1', functionId: 'f6', assigneeId: 'u5', creatorId: 'u1', priority: 'medium', status: 'in_progress', dueAt: days(1) }, ['u1']);
 
+  await prisma.paymentEvent.deleteMany();
+  await prisma.paymentEvent.createMany({
+    data: [
+      { title: 'Аренда офиса', counterparty: 'ООО «Бизнес-Центр»', amount: 120000, dueDate: days(-2), status: 'planned', recurrenceFreq: 'monthly' },
+      { title: 'Зарплата команды', counterparty: 'Сотрудники', amount: 850000, dueDate: days(1), status: 'planned', recurrenceFreq: 'monthly' },
+      { title: 'Хостинг и сервисы', counterparty: 'Cloud Provider', amount: 18000, dueDate: days(4), status: 'planned', recurrenceFreq: 'monthly' },
+      { title: 'Налоги (квартал)', counterparty: 'ФНС', amount: 240000, dueDate: days(20), status: 'planned', recurrenceFreq: 'quarterly' },
+      { title: 'Реклама', counterparty: 'Рекламная площадка', amount: 95000, dueDate: days(-10), status: 'paid' },
+    ],
+  });
+
   await prisma.notification.createMany({
     data: [
       { userId: 'u1', taskId: 't1', type: 'commented' },

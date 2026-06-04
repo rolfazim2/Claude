@@ -3,6 +3,7 @@
 import type {
   AppNotification,
   FunctionNode,
+  PaymentEvent,
   Project,
   Task,
   TaskStatus,
@@ -56,6 +57,11 @@ export const api = {
     req<Task>(`/tasks/${id}/attachments`, { method: 'POST', body: JSON.stringify(data) }),
   describe: (data: { title: string; projectName?: string; functionName?: string }) =>
     req<{ description: string }>('/ai/describe', { method: 'POST', body: JSON.stringify(data) }),
+  payments: () => req<PaymentEvent[]>('/payments'),
+  createPayment: (data: Partial<PaymentEvent>) =>
+    req<PaymentEvent>('/payments', { method: 'POST', body: JSON.stringify(data) }),
+  patchPayment: (id: string, data: Record<string, unknown>) =>
+    req<PaymentEvent>(`/payments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   notifications: () => req<AppNotification[]>('/notifications'),
   readNotification: (id: string) =>
     req<{ ok: boolean }>(`/notifications/${id}/read`, { method: 'POST' }),

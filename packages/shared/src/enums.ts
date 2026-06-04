@@ -122,3 +122,13 @@ export const NOTIFICATION_META: Record<NotificationType, { label: string }> = {
 /** Тип доказательства/вложения. */
 export type AttachmentKind = 'attachment' | 'completion_proof';
 export type ProofFormat = 'text' | 'link' | 'file';
+
+/** Статус платежа (платёжный календарь). */
+export const PAYMENT_STATUSES = ['planned', 'paid', 'canceled'] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_STATUS_META: Record<PaymentStatus, { label: string; color: string }> = {
+  planned: { label: 'Запланирован', color: '#4ea7fc' },
+  paid: { label: 'Оплачен', color: '#27ae60' },
+  canceled: { label: 'Отменён', color: '#6b7280' },
+};

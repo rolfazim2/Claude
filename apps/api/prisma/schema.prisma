@@ -65,6 +65,12 @@ enum NotificationType {
   added_participant
 }
 
+enum PaymentStatus {
+  planned
+  paid
+  canceled
+}
+
 model User {
   id               String   @id @default(cuid())
   telegramId       String?  @unique
@@ -214,4 +220,17 @@ model ActivityEntry {
 
   task  Task @relation(fields: [taskId], references: [id])
   actor User @relation(fields: [actorId], references: [id])
+}
+
+model PaymentEvent {
+  id             String         @id @default(cuid())
+  title          String
+  counterparty   String?
+  amount         Float
+  currency       String         @default("RUB")
+  dueDate        DateTime
+  status         PaymentStatus  @default(planned)
+  projectId      String?
+  recurrenceFreq RecurrenceFreq @default(none)
+  createdAt      DateTime       @default(now())
 }

@@ -126,6 +126,19 @@ export interface AppNotification {
   createdAt: ISODate;
 }
 
+export interface PaymentEvent {
+  id: ID;
+  title: string;
+  counterparty?: string;
+  amount: number;
+  currency: string;
+  dueDate: ISODate;
+  status: import('./enums.js').PaymentStatus;
+  projectId?: ID;
+  recurrenceFreq: import('./enums.js').RecurrenceFreq;
+  createdAt: ISODate;
+}
+
 /** Производный признак — задача просрочена. */
 export function isOverdue(task: Pick<Task, 'dueAt' | 'status'>, now = new Date()): boolean {
   if (!task.dueAt) return false;

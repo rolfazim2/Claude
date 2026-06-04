@@ -294,6 +294,65 @@ app.post('/notifications/:id/read', async (req, reply) => {
   return { ok: true };
 });
 
+// --- Payments (платёжный календарь) ---
+function serializePayment(p: any) {
+  return {
+    id: p.id,
+    title: p.title,
+    counterparty: p.counterparty ?? undefined,
+    amount: p.amount,
+    currency: p.currency,
+    dueDate: p.dueDate.toISOString(),
+    status: p.status,
+    projectId: p.projectId ?? undefined,
+    recurrenceFreq: p.recurrenceFreq,
+    createdAt: p.createdAt.toISOString(),
+  };
+}
+
+app.get('/payments', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  // Финансы видят только админ и руководители.
+  if (me.role === 'member') return [];
+  const items = await prisma.paymentEvent.findMany({ orderBy: { dueDate: 'asc' } });
+  return items.map(serializePayment);
+});
+
+app.post('/payments', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const b = req.body as any;
+  const p = await prisma.paymentEvent.create({
+    data: {
+      title: b.title,
+      counterparty: b.counterparty ?? null,
+      amount: Number(b.amount) || 0,
+      currency: b.currency ?? 'RUB',
+      dueDate: new Date(b.dueDate),
+      status: b.status ?? 'planned',
+      projectId: b.projectId ?? null,
+      recurrenceFreq: b.recurrenceFreq ?? 'none',
+    },
+  });
+  return serializePayment(p);
+});
+
+app.patch('/payments/:id', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  const b = req.body as any;
+  const data: any = {};
+  for (const k of ['title', 'counterparty', 'currency', 'status'] as const) if (k in b) data[k] = b[k];
+  if ('amount' in b) data.amount = Number(b.amount);
+  if ('dueDate' in b) data.dueDate = new Date(b.dueDate);
+  const p = await prisma.paymentEvent.update({ where: { id }, data });
+  return serializePayment(p);
+});
+
 // --- Reports ---
 app.get('/reports/summary', async (req, reply) => {
   const me = await requireUser(req, reply);
