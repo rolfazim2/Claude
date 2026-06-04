@@ -8,6 +8,7 @@ import { getCurrentUser, requireUser } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
+import { generateDescription } from './ai.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -263,6 +264,16 @@ app.post('/tasks/:id/attachments', async (req, reply) => {
   broadcast({ type: 'task.updated', taskId: id });
   const updated = await prisma.task.findUnique({ where: { id }, include: taskInclude });
   return serializeTask(updated);
+});
+
+// --- AI (ChatPRD/описания) ---
+app.post('/ai/describe', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  const b = req.body as { title: string; projectName?: string; functionName?: string };
+  if (!b.title?.trim()) return reply.code(400).send({ error: 'Нужен заголовок' });
+  const description = await generateDescription(b);
+  return { description };
 });
 
 // --- Notifications ---

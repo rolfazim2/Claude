@@ -54,6 +54,8 @@ export const api = {
     req<Task>(`/tasks/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
   addAttachment: (id: string, data: { kind?: string; format: string; value: string }) =>
     req<Task>(`/tasks/${id}/attachments`, { method: 'POST', body: JSON.stringify(data) }),
+  describe: (data: { title: string; projectName?: string; functionName?: string }) =>
+    req<{ description: string }>('/ai/describe', { method: 'POST', body: JSON.stringify(data) }),
   notifications: () => req<AppNotification[]>('/notifications'),
   readNotification: (id: string) =>
     req<{ ok: boolean }>(`/notifications/${id}/read`, { method: 'POST' }),

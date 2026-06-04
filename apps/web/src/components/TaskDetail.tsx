@@ -10,6 +10,7 @@ import {
   type TaskStatus,
 } from '@taskflow/shared';
 import { useStore } from '../store';
+import { api } from '../api';
 import { Avatar } from './ui/Avatar';
 import { PriorityIcon } from './ui/Badges';
 import { formatDue, formatRelative } from '../lib/format';
@@ -55,6 +56,7 @@ export function TaskDetail() {
   const [comment, setComment] = useState('');
   const [proof, setProof] = useState('');
   const [newSub, setNewSub] = useState('');
+  const [genBusy, setGenBusy] = useState(false);
 
   useEffect(() => {
     setTitle(task?.title ?? '');
@@ -156,8 +158,27 @@ export function TaskDetail() {
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-2xs uppercase tracking-wide text-faint">Описание</span>
-              <button className="btn-ghost px-1.5 py-0.5 text-2xs" title="Заглушка — подключается ChatPRD (Этап B)">
-                <Sparkles size={12} /> Сгенерировать (ChatPRD)
+              <button
+                className="btn-ghost px-1.5 py-0.5 text-2xs disabled:opacity-50"
+                disabled={genBusy}
+                onClick={async () => {
+                  setGenBusy(true);
+                  try {
+                    const { description } = await api.describe({
+                      title: task.title,
+                      projectName: project?.name,
+                      functionName: fn?.name,
+                    });
+                    setDesc(description);
+                    await updateTask(task.id, { description });
+                  } catch (e: any) {
+                    alert(e.message ?? 'Не удалось сгенерировать');
+                  } finally {
+                    setGenBusy(false);
+                  }
+                }}
+              >
+                <Sparkles size={12} /> {genBusy ? 'Генерирую…' : 'Сгенерировать (ChatPRD)'}
               </button>
             </div>
             <textarea
