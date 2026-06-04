@@ -135,6 +135,9 @@ model Task {
   recurrenceTime     String?
   recurrenceDate     DateTime?
 
+  remindedDayBefore  Boolean @default(false)
+  remindedHourBefore Boolean @default(false)
+
   customFields Json     @default("{}")
   archived     Boolean  @default(false)
   createdAt    DateTime @default(now())

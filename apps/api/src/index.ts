@@ -7,6 +7,7 @@ import { prisma } from './db.js';
 import { getCurrentUser, requireUser } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
+import { nextOccurrence, startScheduler } from './scheduler.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -189,6 +190,35 @@ app.patch('/tasks/:id', async (req, reply) => {
       });
       broadcast({ type: 'notification.created', userId: existing.assigneeId });
     }
+
+    // Повторяющаяся задача закрыта → создаём следующий экземпляр.
+    if (b.status === 'done' && existing.recurrenceFreq && existing.recurrenceFreq !== 'none') {
+      const base = existing.dueAt ?? new Date();
+      const due = nextOccurrence(existing.recurrenceFreq, base, existing.recurrenceInterval ?? 1);
+      if (due) {
+        const next = await prisma.task.create({
+          data: {
+            title: existing.title,
+            description: existing.description,
+            projectId: existing.projectId,
+            functionId: existing.functionId,
+            assigneeId: existing.assigneeId,
+            creatorId: existing.creatorId,
+            priority: existing.priority,
+            status: 'to_do',
+            dueAt: due,
+            proofRequired: existing.proofRequired,
+            recurrenceFreq: existing.recurrenceFreq,
+            recurrenceInterval: existing.recurrenceInterval,
+            recurrenceTime: existing.recurrenceTime,
+          },
+        });
+        // Закрытый экземпляр больше не повторяется.
+        await prisma.task.update({ where: { id }, data: { recurrenceFreq: 'none' } });
+        broadcast({ type: 'task.created', taskId: next.id });
+        if (existing.assigneeId) broadcast({ type: 'notification.created', userId: existing.assigneeId });
+      }
+    }
   }
   broadcast({ type: 'task.updated', taskId: id });
   return serializeTask(task);
@@ -285,7 +315,10 @@ app.get('/ws', { websocket: true }, (socket) => {
 const port = Number(process.env.PORT ?? 3001);
 app
   .listen({ port, host: '0.0.0.0' })
-  .then(() => app.log.info(`API on :${port}`))
+  .then(() => {
+    app.log.info(`API on :${port}`);
+    startScheduler();
+  })
   .catch((err) => {
     app.log.error(err);
     process.exit(1);
