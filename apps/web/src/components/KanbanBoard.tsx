@@ -41,7 +41,7 @@ function Column({ status, tasks }: { status: TaskStatus; tasks: Task[] }) {
       <div
         ref={setNodeRef}
         className={`flex min-h-[120px] flex-1 flex-col gap-2 rounded-lg p-1 transition-colors ${
-          isOver ? 'bg-hover/60' : ''
+          isOver ? 'bg-hover' : ''
         }`}
       >
         {tasks.map((t) => (

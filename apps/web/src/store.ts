@@ -16,7 +16,26 @@ import {
   users as mockUsers,
 } from './data/mock';
 
+export type Theme = 'dark' | 'light';
+
+function initialTheme(): Theme {
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+  }
+  return 'dark';
+}
+
+export function applyTheme(theme: Theme) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}
+
 interface AppState {
+  theme: Theme;
+  toggleTheme: () => void;
+
   currentUserId: string;
   users: User[];
   functions: FunctionNode[];
@@ -35,6 +54,15 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  theme: initialTheme(),
+  toggleTheme: () =>
+    set((s) => {
+      const theme: Theme = s.theme === 'dark' ? 'light' : 'dark';
+      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', theme);
+      applyTheme(theme);
+      return { theme };
+    }),
+
   currentUserId: CURRENT_USER_ID,
   users: mockUsers,
   functions: mockFunctions,

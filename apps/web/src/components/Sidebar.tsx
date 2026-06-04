@@ -8,6 +8,8 @@ import {
   Repeat,
   Plus,
   Search,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
@@ -24,6 +26,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const projects = useStore((s) => s.projects);
   const user = useStore((s) => s.userById(s.currentUserId));
   const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
+  const theme = useStore((s) => s.theme);
+  const toggleTheme = useStore((s) => s.toggleTheme);
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -81,10 +85,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div className="mt-auto flex items-center gap-2 border-t border-border px-3 py-2.5">
         <Avatar user={user} size={26} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-[13px]">{user?.fullName}</div>
           <div className="truncate text-2xs text-faint">{user?.position}</div>
         </div>
+        <button
+          onClick={toggleTheme}
+          className="btn-ghost px-1.5 py-1"
+          title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
       </div>
     </aside>
   );

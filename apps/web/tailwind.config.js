@@ -4,18 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Палитра в духе Linear (тёмная тема).
-        bg: '#08090a',
-        surface: '#0f1011',
-        elevated: '#16171a',
-        hover: '#1c1d21',
-        border: '#23252a',
-        borderSoft: '#1a1c20',
-        text: '#e8e8ea',
-        muted: '#8a8f98',
-        faint: '#5c6066',
-        accent: '#5e6ad2',
-        accentHover: '#6e79e0',
+        // Палитра через CSS-переменные — общая для тёмной и светлой темы.
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        elevated: 'var(--elevated)',
+        hover: 'var(--hover)',
+        border: 'var(--border)',
+        borderSoft: 'var(--borderSoft)',
+        text: 'var(--text)',
+        muted: 'var(--muted)',
+        faint: 'var(--faint)',
+        accent: 'var(--accent)',
+        accentHover: 'var(--accentHover)',
       },
       fontFamily: {
         sans: [

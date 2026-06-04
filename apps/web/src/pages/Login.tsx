@@ -1,10 +1,20 @@
 import { useNavigate } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, Sun, Moon } from 'lucide-react';
+import { useStore } from '../store';
 
 export function Login() {
   const navigate = useNavigate();
+  const theme = useStore((s) => s.theme);
+  const toggleTheme = useStore((s) => s.toggleTheme);
   return (
-    <div className="flex h-screen items-center justify-center bg-bg px-4 text-text">
+    <div className="relative flex h-screen items-center justify-center bg-bg px-4 text-text">
+      <button
+        onClick={toggleTheme}
+        className="btn-ghost absolute right-4 top-4 px-2 py-1.5"
+        title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+      >
+        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
       <div className="w-full max-w-sm text-center">
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
           T
