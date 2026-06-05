@@ -204,6 +204,105 @@ app.get('/bot/tasks', async (req, reply) => {
   return { user: { fullName: user.fullName }, tasks: tasks.map(serializeTask) };
 });
 
+// Хелперы для бот-действий.
+async function userByTg(tgId: unknown) {
+  if (!tgId) return null;
+  return prisma.user.findUnique({ where: { telegramId: String(tgId) } });
+}
+function canActOnTask(user: { id: string; role: string }, task: { assigneeId: string | null; creatorId: string | null; participants?: { userId: string }[] }) {
+  if (user.role === 'super_admin' || user.role === 'process_lead') return true;
+  if (task.assigneeId === user.id || task.creatorId === user.id) return true;
+  return !!task.participants?.some((p) => p.userId === user.id);
+}
+
+// Смена статуса задачи из бота.
+app.post('/bot/tasks/:id/status', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const { id } = req.params as { id: string };
+  const b = req.body as { tgId: string | number; status: string };
+  const user = await userByTg(b.tgId);
+  if (!user) return reply.code(404).send({ error: 'not linked' });
+  const task = await prisma.task.findUnique({ where: { id }, include: { attachments: true, participants: true } });
+  if (!task) return reply.code(404).send({ error: 'Не найдено' });
+  if (!canActOnTask(user, task)) return reply.code(403).send({ error: 'Нет доступа к задаче' });
+
+  if (b.status === 'done' && task.proofRequired) {
+    const hasProof = task.attachments.some((a) => a.kind === 'completion_proof');
+    if (!hasProof) return reply.code(400).send({ error: 'needs_proof' });
+  }
+
+  await prisma.task.update({ where: { id }, data: { status: b.status as any } });
+  await prisma.activityEntry.create({ data: { taskId: id, actorId: user.id, action: `статус → ${b.status}` } });
+  await notifyProjectChat(task.projectId, `🔁 <b>${task.title}</b>: статус → ${STATUS_LABELS[b.status] ?? b.status}`);
+  if (task.assigneeId && task.assigneeId !== user.id) {
+    await prisma.notification.create({ data: { userId: task.assigneeId, taskId: id, type: 'status_changed' } });
+    broadcast({ type: 'notification.created', userId: task.assigneeId });
+  }
+  // Повторяющаяся задача закрыта → следующий экземпляр.
+  if (b.status === 'done' && task.recurrenceFreq && task.recurrenceFreq !== 'none') {
+    const due = nextOccurrence(task.recurrenceFreq, task.dueAt ?? new Date(), task.recurrenceInterval ?? 1);
+    if (due) {
+      const next = await prisma.task.create({
+        data: {
+          title: task.title, description: task.description, projectId: task.projectId, functionId: task.functionId,
+          assigneeId: task.assigneeId, creatorId: task.creatorId, priority: task.priority, status: 'to_do',
+          dueAt: due, proofRequired: task.proofRequired, recurrenceFreq: task.recurrenceFreq, recurrenceInterval: task.recurrenceInterval,
+        },
+      });
+      await prisma.task.update({ where: { id }, data: { recurrenceFreq: 'none' } });
+      broadcast({ type: 'task.created', taskId: next.id });
+    }
+  }
+  broadcast({ type: 'task.updated', taskId: id });
+  return { ok: true };
+});
+
+// Комментарий из бота.
+app.post('/bot/tasks/:id/comment', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const { id } = req.params as { id: string };
+  const b = req.body as { tgId: string | number; body: string };
+  const user = await userByTg(b.tgId);
+  if (!user) return reply.code(404).send({ error: 'not linked' });
+  const task = await prisma.task.findUnique({ where: { id }, include: { participants: true } });
+  if (!task) return reply.code(404).send({ error: 'Не найдено' });
+  if (!canActOnTask(user, task)) return reply.code(403).send({ error: 'Нет доступа к задаче' });
+
+  await prisma.comment.create({ data: { taskId: id, authorId: user.id, body: b.body } });
+  const recipients = new Set<string>();
+  if (task.assigneeId) recipients.add(task.assigneeId);
+  if (task.creatorId) recipients.add(task.creatorId);
+  task.participants.forEach((p) => recipients.add(p.userId));
+  recipients.delete(user.id);
+  for (const userId of recipients) {
+    await prisma.notification.create({ data: { userId, taskId: id, type: 'commented' } });
+    broadcast({ type: 'notification.created', userId });
+  }
+  await notifyProjectChat(task.projectId, `💬 ${user.fullName}: ${b.body}\n↪ ${task.title}`);
+  broadcast({ type: 'task.updated', taskId: id });
+  return { ok: true };
+});
+
+// Доказательство выполнения из бота.
+app.post('/bot/tasks/:id/proof', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const { id } = req.params as { id: string };
+  const b = req.body as { tgId: string | number; value: string };
+  const user = await userByTg(b.tgId);
+  if (!user) return reply.code(404).send({ error: 'not linked' });
+  const task = await prisma.task.findUnique({ where: { id }, include: { participants: true } });
+  if (!task) return reply.code(404).send({ error: 'Не найдено' });
+  if (!canActOnTask(user, task)) return reply.code(403).send({ error: 'Нет доступа к задаче' });
+
+  const format = /^https?:\/\//.test(b.value) ? 'link' : 'text';
+  await prisma.attachment.create({
+    data: { taskId: id, authorId: user.id, kind: 'completion_proof', format: format as any, value: b.value },
+  });
+  await prisma.activityEntry.create({ data: { taskId: id, actorId: user.id, action: 'приложено доказательство' } });
+  broadcast({ type: 'task.updated', taskId: id });
+  return { ok: true };
+});
+
 app.get('/me', async (req, reply) => {
   const me = await getCurrentUser(req);
   if (!me) return reply.code(401).send({ error: 'Не авторизован' });
