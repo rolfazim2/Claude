@@ -4,6 +4,7 @@
 // несколькими инстансами заменяется на BullMQ/Redis.
 import { prisma } from './db.js';
 import { broadcast } from './realtime.js';
+import { sendTelegram } from './telegram.js';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -41,7 +42,13 @@ async function notify(taskId: string, userId: string | null) {
   if (!userId) return;
   await prisma.notification.create({ data: { userId, taskId, type: 'due_soon' } });
   broadcast({ type: 'notification.created', userId });
-  // TODO (Этап C): дублировать напоминание в Telegram-бот.
+  // Дублируем напоминание в Telegram, если аккаунт привязан.
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (user?.telegramId && task) {
+    const when = task.dueAt ? new Date(task.dueAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) : '';
+    await sendTelegram(user.telegramId, `⏰ Напоминание: <b>${task.title}</b>\nСрок: ${when} (МСК)`);
+  }
 }
 
 /** Следующая дата для повторяющейся задачи (null — не повторять). */

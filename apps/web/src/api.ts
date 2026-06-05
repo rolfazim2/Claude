@@ -39,7 +39,14 @@ export interface Bootstrap {
   projects: Project[];
 }
 
+export interface TgStatus {
+  status: 'pending' | 'confirmed' | 'expired';
+  user?: User;
+}
+
 export const api = {
+  tgInit: () => req<{ code: string; botUsername: string | null; deepLink: string | null }>('/auth/telegram/init', { method: 'POST', body: '{}' }),
+  tgStatus: (code: string) => req<TgStatus>(`/auth/telegram/status?code=${encodeURIComponent(code)}`),
   listLoginUsers: () => req<User[]>('/auth/users'),
   bootstrap: () => req<Bootstrap>('/bootstrap'),
   tasks: (projectId?: string) =>

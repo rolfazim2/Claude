@@ -9,6 +9,7 @@ import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
 import { generateDescription, chatAnswer, generateSubtasks } from './ai.js';
+import { createLoginSession, getLoginSession, confirmLoginSession } from './telegram-auth.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -71,6 +72,72 @@ app.get('/health', async () => ({ ok: true, service: 'taskflow-api' }));
 app.get('/auth/users', async () => {
   const users = await prisma.user.findMany({ where: { active: true }, orderBy: { fullName: 'asc' } });
   return users;
+});
+
+// --- Auth через Telegram ---
+const BOT_SECRET = process.env.BOT_SHARED_SECRET || 'dev-secret';
+
+app.post('/auth/telegram/init', async () => {
+  const code = createLoginSession();
+  const botUsername = process.env.BOT_USERNAME || '';
+  return {
+    code,
+    botUsername: botUsername || null,
+    deepLink: botUsername ? `https://t.me/${botUsername}?start=${code}` : null,
+  };
+});
+
+app.get('/auth/telegram/status', async (req) => {
+  const { code } = req.query as { code?: string };
+  const s = code ? getLoginSession(code) : null;
+  if (!s) return { status: 'expired' };
+  if (s.status === 'confirmed' && s.userId) {
+    const user = await prisma.user.findUnique({ where: { id: s.userId } });
+    return { status: 'confirmed', user };
+  }
+  return { status: 'pending' };
+});
+
+// Вызывается БОТОМ (защищено общим секретом).
+app.post('/auth/telegram/confirm', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const b = req.body as { code: string; tgId: string | number; firstName?: string; username?: string };
+  const s = getLoginSession(b.code);
+  if (!s) return reply.code(400).send({ error: 'Код истёк или неверен' });
+
+  const tgId = String(b.tgId);
+  let user = await prisma.user.findUnique({ where: { telegramId: tgId } });
+  if (!user) {
+    const colors = ['#5e6ad2', '#27ae60', '#f2994a', '#eb5757', '#4ea7fc', '#9b51e0'];
+    user = await prisma.user.create({
+      data: {
+        fullName: b.firstName || b.username || 'Пользователь Telegram',
+        position: 'Сотрудник',
+        role: 'member',
+        telegramId: tgId,
+        telegramUsername: b.username ?? null,
+        avatarColor: colors[Math.floor(Math.random() * colors.length)],
+      },
+    });
+  } else if (b.username && user.telegramUsername !== b.username) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { telegramUsername: b.username } });
+  }
+  confirmLoginSession(b.code, user.id);
+  return { ok: true, user };
+});
+
+// Бот-API: задачи пользователя по telegramId (защищено секретом).
+app.get('/bot/tasks', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const { tgId } = req.query as { tgId?: string };
+  const user = tgId ? await prisma.user.findUnique({ where: { telegramId: String(tgId) } }) : null;
+  if (!user) return reply.code(404).send({ error: 'not linked' });
+  const tasks = await prisma.task.findMany({
+    where: { AND: [taskVisibilityWhere(user.id, user.role), { archived: false, status: { notIn: ['done', 'canceled'] } }] },
+    orderBy: [{ dueAt: 'asc' }],
+    take: 30,
+  });
+  return { user: { fullName: user.fullName }, tasks: tasks.map(serializeTask) };
 });
 
 app.get('/me', async (req, reply) => {
