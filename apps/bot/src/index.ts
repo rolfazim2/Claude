@@ -51,6 +51,26 @@ bot.command('start', async (ctx) => {
   );
 });
 
+// /link <код> — привязать текущую группу к проекту (стиль UTasks).
+bot.command('link', async (ctx) => {
+  const code = ctx.match?.trim();
+  if (!code) {
+    await ctx.reply('Использование: /link <код>. Код возьмите на сайте: проект → «Привязать группу».');
+    return;
+  }
+  const res = await api('/projects/telegram/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ code, chatId: ctx.chat?.id, title: (ctx.chat as any)?.title }),
+  });
+  if (res.ok) {
+    const d = (await res.json()) as { projectName: string };
+    await ctx.reply(`✅ Группа привязана к проекту «${d.projectName}». Сюда будут приходить события задач.`);
+  } else {
+    const e = (await res.json().catch(() => ({}))) as any;
+    await ctx.reply(`⚠️ ${e.error || 'Не удалось привязать'}. Запросите новый код на сайте.`);
+  }
+});
+
 async function showTasks(ctx: any) {
   const res = await api(`/bot/tasks?tgId=${ctx.from?.id}`);
   if (res.status === 404) {

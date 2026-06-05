@@ -43,3 +43,20 @@ export function confirmLoginSession(code: string, userId: string): boolean {
   s.userId = userId;
   return true;
 }
+
+// --- Привязка проекта к Telegram-группе (стиль UTasks) ---
+// code → projectId, действителен ограниченное время.
+const projectLinks = new Map<string, { projectId: string; createdAt: number }>();
+
+export function createProjectLinkCode(projectId: string): string {
+  for (const [c, v] of projectLinks) if (Date.now() - v.createdAt > TTL_MS) projectLinks.delete(c);
+  const code = randomBytes(3).toString('hex');
+  projectLinks.set(code, { projectId, createdAt: Date.now() });
+  return code;
+}
+
+export function resolveProjectLinkCode(code: string): string | null {
+  const v = projectLinks.get(code);
+  if (!v || Date.now() - v.createdAt > TTL_MS) return null;
+  return v.projectId;
+}

@@ -72,6 +72,12 @@ export const api = {
     req<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
   patchProject: (id: string, data: Record<string, unknown>) =>
     req<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  projectTgInit: (projectId: string) =>
+    req<{ code: string; botUsername: string | null }>(`/projects/${projectId}/telegram/init`, { method: 'POST', body: '{}' }),
+  projectTgStatus: (projectId: string) =>
+    req<{ linked: boolean; chatId: string | null }>(`/projects/${projectId}/telegram/status`),
+  projectTgUnlink: (projectId: string) =>
+    req<{ ok: boolean }>(`/projects/${projectId}/telegram/unlink`, { method: 'POST', body: '{}' }),
   createField: (projectId: string, data: { name: string; type: string; options?: string[] }) =>
     req<{ id: string; name: string; type: string; options: string[] }>(`/projects/${projectId}/fields`, { method: 'POST', body: JSON.stringify(data) }),
   createFunction: (data: Partial<FunctionNode>) =>

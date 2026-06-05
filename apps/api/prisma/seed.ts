@@ -18,6 +18,8 @@ async function main() {
   await prisma.comment.deleteMany();
   await prisma.taskParticipant.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.customFieldDef.deleteMany();
+  await prisma.paymentEvent.deleteMany();
   await prisma.project.deleteMany();
   await prisma.function.deleteMany();
   await prisma.user.deleteMany();

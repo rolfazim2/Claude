@@ -80,6 +80,11 @@ interface AppState {
   openFieldModal: (projectId: string) => void;
   closeFieldModal: () => void;
 
+  projectTgModal: { open: boolean; projectId: string | null };
+  openProjectTgModal: (projectId: string) => void;
+  closeProjectTgModal: () => void;
+  setProjectTelegram: (projectId: string, chatId: string | null) => void;
+
   userById: (id?: string) => User | undefined;
   projectById: (id?: string) => Project | undefined;
   functionById: (id?: string) => FunctionNode | undefined;
@@ -253,6 +258,14 @@ export const useStore = create<AppState>((set, get) => ({
   fieldModal: { open: false, projectId: null },
   openFieldModal: (projectId) => set({ fieldModal: { open: true, projectId } }),
   closeFieldModal: () => set({ fieldModal: { open: false, projectId: null } }),
+
+  projectTgModal: { open: false, projectId: null },
+  openProjectTgModal: (projectId) => set({ projectTgModal: { open: true, projectId } }),
+  closeProjectTgModal: () => set({ projectTgModal: { open: false, projectId: null } }),
+  setProjectTelegram: (projectId, chatId) =>
+    set((s) => ({
+      projects: s.projects.map((p) => (p.id === projectId ? { ...p, telegramChatId: chatId ?? undefined } : p)),
+    })),
 
   userById: (id) => get().users.find((u) => u.id === id),
   projectById: (id) => get().projects.find((p) => p.id === id),

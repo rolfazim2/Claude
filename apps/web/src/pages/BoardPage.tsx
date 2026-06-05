@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { LayoutGrid, List as ListIcon, Search, Repeat, Hash, ArrowUpDown } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Search, Repeat, Hash, ArrowUpDown, Send } from 'lucide-react';
 import {
   PRIORITY_META,
   STATUS_META,
@@ -24,6 +24,7 @@ export function BoardPage() {
   const userById = useStore((s) => s.userById);
   const me = useStore((s) => s.userById(s.currentUserId ?? undefined));
   const openFieldModal = useStore((s) => s.openFieldModal);
+  const openProjectTgModal = useStore((s) => s.openProjectTgModal);
   const canManage = me?.role === 'super_admin' || me?.role === 'process_lead';
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
@@ -68,6 +69,15 @@ export function BoardPage() {
         <span className="text-2xs text-faint">{tasks.length} задач</span>
 
         <div className="ml-auto flex items-center gap-1.5">
+          {canManage && (
+            <button
+              onClick={() => openProjectTgModal(project.id)}
+              className={`btn-ghost border border-border ${project.telegramChatId ? 'text-[#27ae60]' : ''}`}
+              title="Привязать Telegram-группу"
+            >
+              <Send size={14} /> {project.telegramChatId ? 'Группа ✓' : 'Группа'}
+            </button>
+          )}
           <div className="flex items-center gap-1.5 rounded-md border border-border bg-elevated px-2 py-1">
             <Search size={13} className="text-faint" />
             <input

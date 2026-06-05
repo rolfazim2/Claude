@@ -9,7 +9,30 @@ import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
 import { generateDescription, chatAnswer, generateSubtasks } from './ai.js';
-import { createLoginSession, getLoginSession, confirmLoginSession } from './telegram-auth.js';
+import {
+  createLoginSession,
+  getLoginSession,
+  confirmLoginSession,
+  createProjectLinkCode,
+  resolveProjectLinkCode,
+} from './telegram-auth.js';
+import { sendTelegram } from './telegram.js';
+
+const STATUS_LABELS: Record<string, string> = {
+  to_do: 'Взять в работу',
+  in_progress: 'В работе',
+  on_hold: 'Отложено',
+  blocked: 'Возникли трудности',
+  done: 'Выполнено',
+  canceled: 'Отменено',
+};
+
+// Зеркалирование событий задачи в привязанную Telegram-группу проекта.
+async function notifyProjectChat(projectId: string | null | undefined, text: string) {
+  if (!projectId) return;
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (project?.telegramChatId) await sendTelegram(project.telegramChatId, text);
+}
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -124,6 +147,47 @@ app.post('/auth/telegram/confirm', async (req, reply) => {
   }
   confirmLoginSession(b.code, user.id);
   return { ok: true, user };
+});
+
+// --- Привязка проекта к Telegram-группе ---
+app.post('/projects/:id/telegram/init', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  const code = createProjectLinkCode(id);
+  const botUsername = process.env.BOT_USERNAME || '';
+  return { code, botUsername: botUsername || null };
+});
+
+app.get('/projects/:id/telegram/status', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  const { id } = req.params as { id: string };
+  const project = await prisma.project.findUnique({ where: { id } });
+  return { linked: !!project?.telegramChatId, chatId: project?.telegramChatId ?? null };
+});
+
+app.post('/projects/:id/telegram/unlink', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  if (!canCreateForOthers(me.role)) return reply.code(403).send({ error: 'Недостаточно прав' });
+  const { id } = req.params as { id: string };
+  await prisma.project.update({ where: { id }, data: { telegramChatId: null } });
+  return { ok: true };
+});
+
+// Вызывается БОТОМ: /link <код> в группе.
+app.post('/projects/telegram/confirm', async (req, reply) => {
+  if (req.headers['x-bot-secret'] !== BOT_SECRET) return reply.code(401).send({ error: 'bad secret' });
+  const b = req.body as { code: string; chatId: string | number; title?: string };
+  const projectId = resolveProjectLinkCode(b.code);
+  if (!projectId) return reply.code(400).send({ error: 'Код истёк или неверен' });
+  const project = await prisma.project.update({
+    where: { id: projectId },
+    data: { telegramChatId: String(b.chatId) },
+  });
+  return { ok: true, projectName: project.name };
 });
 
 // Бот-API: задачи пользователя по telegramId (защищено секретом).
@@ -293,6 +357,7 @@ app.post('/tasks', async (req, reply) => {
     broadcast({ type: 'notification.created', userId: assigneeId });
   }
   broadcast({ type: 'task.created', taskId: task.id });
+  await notifyProjectChat(task.projectId, `🆕 Новая задача: <b>${task.title}</b>`);
   return serializeTask(task);
 });
 
@@ -327,6 +392,7 @@ app.patch('/tasks/:id', async (req, reply) => {
     await prisma.activityEntry.create({
       data: { taskId: id, actorId: me.id, action: `статус → ${b.status}` },
     });
+    await notifyProjectChat(existing.projectId, `🔁 <b>${existing.title}</b>: статус → ${STATUS_LABELS[b.status] ?? b.status}`);
     if (existing.assigneeId && existing.assigneeId !== me.id) {
       await prisma.notification.create({
         data: { userId: existing.assigneeId, taskId: id, type: 'status_changed' },
@@ -384,6 +450,7 @@ app.post('/tasks/:id/comments', async (req, reply) => {
     broadcast({ type: 'notification.created', userId });
   }
   broadcast({ type: 'task.updated', taskId: id });
+  await notifyProjectChat(task?.projectId, `💬 ${me.fullName}: ${body}\n↪ ${task?.title}`);
   const updated = await prisma.task.findUnique({ where: { id }, include: taskInclude });
   return serializeTask(updated);
 });
