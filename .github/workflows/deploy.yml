@@ -1,0 +1,40 @@
+name: Deploy to server (SSH)
+
+# Деплой на ваш сервер по SSH. Запускается вручную (Actions → Deploy → Run workflow)
+# ИЛИ автоматически после успешной публикации образов.
+# Требуются секреты репозитория: SSH_HOST, SSH_USER, SSH_KEY (приватный ключ), SSH_PORT (опц.).
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Build & Publish images (GHCR)']
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: docker-compose.prod.yml
+          target: /opt/taskflow
+
+      - name: Pull & restart on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd /opt/taskflow
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f

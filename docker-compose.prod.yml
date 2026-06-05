@@ -1,0 +1,58 @@
+# Прод-развёртывание из готовых образов GHCR.
+# На сервере: положите этот файл и .env в /opt/taskflow, затем:
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml exec api pnpm seed   # один раз, демо-данные
+#
+# .env должен содержать: IMAGE_PREFIX, POSTGRES_*, BOT_TOKEN, BOT_USERNAME, BOT_SHARED_SECRET
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-taskflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow}
+      POSTGRES_DB: ${POSTGRES_DB:-taskflow}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-taskflow}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ghcr.io/${IMAGE_PREFIX}/taskflow-api:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow}@db:5432/${POSTGRES_DB:-taskflow}
+      PORT: 3001
+      BOT_TOKEN: ${BOT_TOKEN}
+      BOT_USERNAME: ${BOT_USERNAME}
+      BOT_SHARED_SECRET: ${BOT_SHARED_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '3001:3001'
+
+  bot:
+    image: ghcr.io/${IMAGE_PREFIX}/taskflow-bot:latest
+    restart: unless-stopped
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      API_URL: http://api:3001
+      BOT_SHARED_SECRET: ${BOT_SHARED_SECRET}
+    depends_on:
+      - api
+
+  web:
+    image: ghcr.io/${IMAGE_PREFIX}/taskflow-web:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+
+volumes:
+  db_data:
