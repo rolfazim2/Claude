@@ -21,7 +21,12 @@ ENDPOINTS = {
     "list_tasks": "/tasks",   # GET, поддерживает query-параметры
     "task": "/tasks",         # GET /tasks/{id}
     "create_task": "/tasks",  # POST
+    "update_task": "/tasks",  # PATCH /tasks/{id}
 }
+
+# Значение поля статуса, означающее «выполнено» при завершении задачи.
+# Сверьте с реальной схемой otask (возможно, нужен id колонки/этапа, а не строка).
+DONE_STATUS = "done"
 
 PRIORITY_VALUES = ("low", "normal", "high", "critical", "unknown")
 
@@ -97,6 +102,16 @@ class OtaskClient:
     ) -> Task:
         body = _serialize_create(title, description, deadline, priority)
         raw = await self._request(ENDPOINTS["create_task"], method="POST", json=body)
+        return _normalize_task(_unwrap_item(raw))
+
+    async def complete_task(self, task_id: str) -> Task:
+        """Пометить задачу выполненной."""
+        body = {"status": DONE_STATUS, "is_done": True}
+        raw = await self._request(
+            f"{ENDPOINTS['update_task']}/{task_id}", method="PATCH", json=body
+        )
+        if raw is None:  # 204 No Content — перечитаем задачу
+            return await self.get_task(task_id)
         return _normalize_task(_unwrap_item(raw))
 
 

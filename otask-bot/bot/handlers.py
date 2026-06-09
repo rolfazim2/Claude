@@ -5,12 +5,12 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.enums import ParseMode
-from aiogram.filters import Command, CommandObject, StateFilter
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from .config import config
@@ -32,6 +32,19 @@ def _report_error(e: Exception) -> str:
     if isinstance(e, OtaskError):
         return f"⚠️ {e}"
     return f"⚠️ Непредвиденная ошибка: {e}"
+
+
+def _task_keyboard(task) -> Optional[InlineKeyboardMarkup]:
+    """Кнопки под карточкой задачи: завершить + открыть в otask."""
+    if not task.id:
+        return None
+    builder = InlineKeyboardBuilder()
+    if not task.done:
+        builder.button(text="✅ Завершить", callback_data=f"done:{task.id}")
+    if task.url:
+        builder.button(text="🔗 Открыть в otask", url=task.url)
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 # ── Простые команды ──────────────────────────────────────────────────────────
@@ -69,6 +82,7 @@ async def cmd_help(message: Message) -> None:
                 "/overdue — просроченные задачи",
                 "/soon — задачи с близким дедлайном",
                 "/task id — карточка конкретной задачи",
+                "/done id — отметить задачу выполненной",
                 "/new — поставить задачу пошагово",
                 "/new Заголовок | описание | 2026-06-10 18:00 | high — одной строкой",
                 "/reminders on | off — вкл/выкл напоминания",
@@ -140,9 +154,51 @@ async def cmd_task(message: Message, command: CommandObject) -> None:
         return
     try:
         task = await _client.get_task(task_id)
-        await message.answer(format_task_card(task), parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        await message.answer(
+            format_task_card(task),
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=_task_keyboard(task),
+        )
     except Exception as e:  # noqa: BLE001
         await message.answer(_report_error(e))
+
+
+@router.message(Command("done"))
+async def cmd_done(message: Message, command: CommandObject) -> None:
+    task_id = (command.args or "").strip()
+    if not task_id:
+        await message.answer("Использование: <code>/done ID_задачи</code>", parse_mode=ParseMode.HTML)
+        return
+    try:
+        task = await _client.complete_task(task_id)
+        await message.answer(
+            f"✅ Задача завершена:\n\n{format_task_card(task)}",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        await message.answer(_report_error(e))
+
+
+@router.callback_query(F.data.startswith("done:"))
+async def cb_done(callback: CallbackQuery) -> None:
+    task_id = (callback.data or "").split(":", 1)[1]
+    try:
+        task = await _client.complete_task(task_id)
+    except Exception as e:  # noqa: BLE001
+        await callback.answer("Не удалось завершить", show_alert=True)
+        if callback.message:
+            await callback.message.answer(_report_error(e))
+        return
+    await callback.answer("Готово ✅")
+    if callback.message:
+        await callback.message.edit_text(
+            f"✅ Задача завершена:\n\n{format_task_card(task)}",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=_task_keyboard(task),
+        )
 
 
 # ── Мастер создания задачи (FSM) ─────────────────────────────────────────────
@@ -237,14 +293,11 @@ async def _submit_task(message: Message, draft: dict) -> None:
             deadline=deadline,
             priority=draft.get("priority"),
         )
-        builder = InlineKeyboardBuilder()
-        if task.url:
-            builder.button(text="Открыть в otask", url=task.url)
         await message.answer(
             f"✅ Задача создана:\n\n{format_task_card(task)}",
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
-            reply_markup=builder.as_markup() if task.url else None,
+            reply_markup=_task_keyboard(task),
         )
     except Exception as e:  # noqa: BLE001
         await message.answer(_report_error(e))

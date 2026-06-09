@@ -6,11 +6,23 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from bot.config import config
 from bot.handlers import router
 from bot.reminders import run_reminders_once
+
+BOT_COMMANDS = [
+    BotCommand(command="tasks", description="Мои назначенные задачи"),
+    BotCommand(command="overdue", description="Просроченные задачи"),
+    BotCommand(command="soon", description="Скоро дедлайн"),
+    BotCommand(command="task", description="Карточка задачи: /task id"),
+    BotCommand(command="done", description="Завершить задачу: /done id"),
+    BotCommand(command="new", description="Поставить задачу"),
+    BotCommand(command="reminders", description="Напоминания: on|off"),
+    BotCommand(command="help", description="Список команд"),
+]
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +51,7 @@ async def main() -> None:
         config.reminder_lead_hours,
     )
 
+    await bot.set_my_commands(BOT_COMMANDS)
     me = await bot.get_me()
     logger.info("Авторизован как @%s. Запускаю long-polling…", me.username)
     try:

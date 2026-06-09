@@ -12,6 +12,9 @@ Telegram-бот для [otask.ru](https://otask.ru) (таск-трекер O!tas
 | 3 | Просрочки | `/overdue` (а также пометка ⚠️ в любом списке) |
 | 4 | Напоминания о скором дедлайне | автоматически + `/reminders on\|off`, предпросмотр `/soon` |
 | 5 | Постановка задачи | `/new` (мастер) или однострочный синтаксис |
+| 6 | Завершение задачи | кнопка «✅ Завершить» под карточкой или `/done <id>` |
+
+Команды зарегистрированы в Telegram (`setMyCommands`) — видны по кнопке «/» в чате.
 
 ### Команды
 
@@ -21,7 +24,8 @@ Telegram-бот для [otask.ru](https://otask.ru) (таск-трекер O!tas
 /tasks              — назначенные задачи (без завершённых)
 /overdue            — только просроченные
 /soon               — у которых дедлайн в ближайшие REMINDER_LEAD_HOURS часов
-/task <id>          — полная карточка задачи
+/task <id>          — полная карточка задачи (с кнопками «Завершить» / «Открыть»)
+/done <id>          — отметить задачу выполненной
 /new                — поставить задачу пошагово (заголовок → описание → срок → приоритет)
 /new Заголовок | описание | 2026-06-10 18:00 | high   — создать одной строкой
 /reminders on|off   — включить/выключить напоминания о дедлайнах
@@ -60,6 +64,22 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### Docker
+
+```bash
+docker build -t otask-bot .
+docker run -d --name otask-bot --env-file .env -v otask-data:/data otask-bot
+```
+
+### Тесты
+
+Покрыта чистая логика (нормализация ответов API, форматирование, парсеры) — без сети:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ### Переменные окружения
 
 | Переменная | Назначение | По умолчанию |
@@ -91,11 +111,12 @@ bot/
 полей нужно сверить с [`api.otask.ru/docs`](https://api.otask.ru/docs). Всё, что зависит
 от схемы API, изолировано в **`bot/otask_client.py`**:
 
-- словарь `ENDPOINTS` — пути (`/tasks`, `/tasks/{id}`, POST `/tasks`);
+- словарь `ENDPOINTS` — пути (`/tasks`, `/tasks/{id}`, POST `/tasks`, PATCH `/tasks/{id}`);
 - `list_assigned_tasks()` — query-параметры выборки назначенных задач (`?assigned=me`);
 - `_normalize_task()` — маппинг полей ответа (терпим к разным именам: `name`/`title`,
   `due_date`/`deadline`, `priority`/`importance` и т.д.);
 - `_serialize_create()` — тело запроса при создании задачи;
+- `complete_task()` / `DONE_STATUS` — как помечается завершение задачи;
 - `_build_url()` — шаблон ссылки на карточку в веб-интерфейсе.
 
 Остальной код бота от схемы не зависит — правки нужны только в этом файле.
