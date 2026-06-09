@@ -14,6 +14,7 @@ export function Login() {
   const login = useStore((s) => s.login);
 
   const [users, setUsers] = useState<User[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +26,10 @@ export function Login() {
   useEffect(() => {
     api
       .listLoginUsers()
-      .then(setUsers)
+      .then((u) => {
+        setUsers(u);
+        setUsersLoaded(true);
+      })
       .catch((e) => setError(e.message ?? 'API недоступен'));
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
@@ -47,7 +51,7 @@ export function Login() {
         const s = await api.tgStatus(init.code);
         if (s.status === 'confirmed' && s.user) {
           if (pollRef.current) clearInterval(pollRef.current);
-          await login(s.user.id);
+          await login(s.user.id, s.token ?? undefined);
           navigate('/my');
         } else if (s.status === 'expired') {
           if (pollRef.current) clearInterval(pollRef.current);
@@ -130,8 +134,14 @@ export function Login() {
               <LogIn size={15} className="text-faint" />
             </button>
           ))}
-          {users.length === 0 && !error && (
+          {users.length === 0 && !error && !usersLoaded && (
             <div className="py-8 text-center text-2xs text-faint">Загрузка…</div>
+          )}
+          {users.length === 0 && !error && usersLoaded && (
+            <div className="rounded-lg border border-border bg-elevated px-3 py-4 text-center text-2xs text-muted">
+              Система пуста — первый вошедший через Telegram автоматически
+              становится главным администратором.
+            </div>
           )}
         </div>
       </div>

@@ -4,7 +4,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import { prisma } from './db.js';
-import { getCurrentUser, requireUser } from './auth.js';
+import { getCurrentUser, requireUser, signToken } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
 import { addClient, broadcast } from './realtime.js';
 import { nextOccurrence, startScheduler } from './scheduler.js';
@@ -17,6 +17,9 @@ import {
   resolveProjectLinkCode,
 } from './telegram-auth.js';
 import { sendTelegram } from './telegram.js';
+
+const BOT_SECRET = process.env.BOT_SHARED_SECRET || 'dev-secret';
+const DEMO_LOGIN_ENABLED = process.env.ALLOW_DEMO_LOGIN !== 'false';
 
 const STATUS_LABELS: Record<string, string> = {
   to_do: 'Взять в работу',
@@ -37,6 +40,16 @@ async function notifyProjectChat(projectId: string | null | undefined, text: str
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
 await app.register(websocket);
+
+// Единый формат ошибок: клиент всегда получает JSON { error }, без стектрейсов наружу.
+app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
+  req.log.error(err);
+  const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500;
+  reply
+    .code(status)
+    .send({ error: status === 500 ? 'Внутренняя ошибка сервера' : err.message });
+});
+app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: 'Не найдено' }));
 
 const taskInclude = {
   participants: true,
@@ -93,12 +106,21 @@ app.get('/health', async () => ({ ok: true, service: 'taskflow-api' }));
 
 // --- Auth (временный вход-выбор) ---
 app.get('/auth/users', async () => {
+  if (!DEMO_LOGIN_ENABLED) return [];
   const users = await prisma.user.findMany({ where: { active: true }, orderBy: { fullName: 'asc' } });
   return users;
 });
 
+// Демо-вход: выдаёт настоящий токен (отключается ALLOW_DEMO_LOGIN=false).
+app.post('/auth/login', async (req, reply) => {
+  if (!DEMO_LOGIN_ENABLED) return reply.code(403).send({ error: 'Демо-вход отключён' });
+  const { userId } = req.body as { userId?: string };
+  const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
+  if (!user || !user.active) return reply.code(404).send({ error: 'Пользователь не найден' });
+  return { token: signToken(user.id), user };
+});
+
 // --- Auth через Telegram ---
-const BOT_SECRET = process.env.BOT_SHARED_SECRET || 'dev-secret';
 
 app.post('/auth/telegram/init', async () => {
   const code = createLoginSession();
@@ -116,7 +138,7 @@ app.get('/auth/telegram/status', async (req) => {
   if (!s) return { status: 'expired' };
   if (s.status === 'confirmed' && s.userId) {
     const user = await prisma.user.findUnique({ where: { id: s.userId } });
-    return { status: 'confirmed', user };
+    return { status: 'confirmed', user, token: user ? signToken(user.id) : null };
   }
   return { status: 'pending' };
 });
@@ -131,12 +153,15 @@ app.post('/auth/telegram/confirm', async (req, reply) => {
   const tgId = String(b.tgId);
   let user = await prisma.user.findUnique({ where: { telegramId: tgId } });
   if (!user) {
+    // Первый пользователь в пустой системе становится главным администратором —
+    // продукт работает «из коробки» без сида.
+    const isFirst = (await prisma.user.count()) === 0;
     const colors = ['#5e6ad2', '#27ae60', '#f2994a', '#eb5757', '#4ea7fc', '#9b51e0'];
     user = await prisma.user.create({
       data: {
         fullName: b.firstName || b.username || 'Пользователь Telegram',
-        position: 'Сотрудник',
-        role: 'member',
+        position: isFirst ? 'Администратор' : 'Сотрудник',
+        role: isFirst ? 'super_admin' : 'member',
         telegramId: tgId,
         telegramUsername: b.username ?? null,
         avatarColor: colors[Math.floor(Math.random() * colors.length)],

@@ -1,5 +1,6 @@
-// Клиент API. Текущий пользователь передаётся заголовком X-User-Id
-// (временный вход-выбор; позже заменим на Telegram-аутентификацию).
+// Клиент API. Авторизация — Bearer-токен (выдаётся при входе через Telegram
+// или демо-входе). В production без VITE_API_URL запросы идут на /api того же
+// домена (nginx в веб-контейнере проксирует их к API) — настройка не нужна.
 import type {
   AppNotification,
   FunctionNode,
@@ -10,18 +11,26 @@ import type {
   User,
 } from '@taskflow/shared';
 
-export const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
+const env = (import.meta as any).env ?? {};
+export const API_URL: string = env.VITE_API_URL || (env.DEV ? 'http://localhost:3001' : '/api');
 
-function userId(): string {
-  return localStorage.getItem('userId') ?? '';
+export function getToken(): string {
+  return localStorage.getItem('token') ?? '';
+}
+export function setToken(token: string | null) {
+  if (token) localStorage.setItem('token', token);
+  else localStorage.removeItem('token');
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(API_URL + path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Id': userId(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // X-User-Id поддерживается API только вне production — для локальной отладки.
+      'X-User-Id': localStorage.getItem('userId') ?? '',
       ...(init?.headers ?? {}),
     },
   });
@@ -42,9 +51,12 @@ export interface Bootstrap {
 export interface TgStatus {
   status: 'pending' | 'confirmed' | 'expired';
   user?: User;
+  token?: string;
 }
 
 export const api = {
+  login: (userId: string) =>
+    req<{ token: string; user: User }>('/auth/login', { method: 'POST', body: JSON.stringify({ userId }) }),
   tgInit: () => req<{ code: string; botUsername: string | null; deepLink: string | null }>('/auth/telegram/init', { method: 'POST', body: '{}' }),
   tgStatus: (code: string) => req<TgStatus>(`/auth/telegram/status?code=${encodeURIComponent(code)}`),
   listLoginUsers: () => req<User[]>('/auth/users'),
@@ -106,7 +118,8 @@ export function wsConnect(onEvent: () => void): () => void {
   let closed = false;
   function open() {
     if (closed) return;
-    const url = API_URL.replace(/^http/, 'ws') + '/ws';
+    const base = API_URL.startsWith('http') ? API_URL : window.location.origin + API_URL;
+    const url = base.replace(/^http/, 'ws') + '/ws';
     ws = new WebSocket(url);
     ws.onmessage = () => onEvent();
     ws.onclose = () => {

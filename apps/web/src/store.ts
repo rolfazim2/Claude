@@ -8,7 +8,7 @@ import type {
   TaskStatus,
   User,
 } from '@taskflow/shared';
-import { api, wsConnect } from './api';
+import { api, setToken, wsConnect } from './api';
 
 export type Theme = 'dark' | 'light';
 
@@ -56,7 +56,7 @@ interface AppState {
   openFunctionModal: (parentId: string | null) => void;
   closeFunctionModal: () => void;
 
-  login: (userId: string) => Promise<void>;
+  login: (userId: string, token?: string) => Promise<void>;
   logout: () => void;
   loadAll: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -128,7 +128,14 @@ export const useStore = create<AppState>((set, get) => ({
   openFunctionModal: (parentId) => set({ functionModal: { open: true, parentId } }),
   closeFunctionModal: () => set({ functionModal: { open: false, parentId: null } }),
 
-  login: async (userId) => {
+  login: async (userId, token) => {
+    // Токен либо уже выдан (Telegram-вход), либо получаем через демо-вход.
+    if (token) {
+      setToken(token);
+    } else {
+      const res = await api.login(userId);
+      setToken(res.token);
+    }
     localStorage.setItem('userId', userId);
     set({ currentUserId: userId, loaded: false });
     await get().loadAll();
@@ -137,6 +144,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('userId');
+    setToken(null);
     wsCleanup?.();
     set({ currentUserId: null, loaded: false, tasks: [], notifications: [] });
   },

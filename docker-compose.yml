@@ -26,18 +26,37 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow}@db:5432/${POSTGRES_DB:-taskflow}
       PORT: 3001
+      NODE_ENV: production
+      APP_SECRET: ${APP_SECRET:-}
+      ALLOW_DEMO_LOGIN: ${ALLOW_DEMO_LOGIN:-true}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      BOT_USERNAME: ${BOT_USERNAME:-}
+      BOT_SHARED_SECRET: ${BOT_SHARED_SECRET:-dev-secret}
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "3001:3001"
 
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      API_URL: http://api:3001
+      BOT_SHARED_SECRET: ${BOT_SHARED_SECRET:-dev-secret}
+    depends_on:
+      - api
+
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+        # Пусто = фронтенд ходит на /api того же домена (nginx-прокси). Настройка не нужна.
+        VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
     depends_on:
       - api
