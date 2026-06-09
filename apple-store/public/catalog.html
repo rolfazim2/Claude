@@ -12,13 +12,23 @@
   <main class="container">
     <div class="breadcrumbs"><a href="/">Главная</a> / <span id="bc">Каталог</span></div>
 
+    <div class="catalog-toolbar">
+      <h1 id="cat-title">Каталог <small id="cat-count"></small></h1>
+      <select id="sort">
+        <option value="">Сначала популярные</option>
+        <option value="price_asc">Сначала дешевле</option>
+        <option value="price_desc">Сначала дороже</option>
+        <option value="rating">По рейтингу</option>
+        <option value="new">Новинки</option>
+        <option value="name">По названию</option>
+      </select>
+    </div>
+
+    <div class="chips" id="chips"></div>
+
     <div class="catalog-layout">
       <aside class="filters">
         <h3>Фильтры</h3>
-        <div class="filter-group">
-          <b>Категория</b>
-          <div id="filter-cats"></div>
-        </div>
         <div class="filter-group">
           <b>Цена, ₽</b>
           <div class="price-inputs">
@@ -27,21 +37,15 @@
             <input type="number" id="maxPrice" placeholder="до" min="0">
           </div>
         </div>
+        <div class="filter-group">
+          <label><input type="checkbox" id="inStock"> Только в наличии</label>
+          <label><input type="checkbox" id="sale"> Со скидкой</label>
+        </div>
         <button class="btn" id="apply" style="width:100%">Применить</button>
         <button class="btn btn-outline" id="reset" style="width:100%;margin-top:10px">Сбросить</button>
       </aside>
 
       <section>
-        <div class="catalog-toolbar">
-          <h1 id="cat-title">Каталог</h1>
-          <select id="sort">
-            <option value="">По популярности</option>
-            <option value="price_asc">Сначала дешевле</option>
-            <option value="price_desc">Сначала дороже</option>
-            <option value="new">Новинки</option>
-            <option value="name">По названию</option>
-          </select>
-        </div>
         <div class="grid" id="products"></div>
         <div class="empty" id="empty" hidden>По вашему запросу ничего не найдено</div>
         <div class="pagination" id="pagination"></div>

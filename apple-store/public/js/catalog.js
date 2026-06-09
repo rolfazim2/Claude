@@ -1,4 +1,4 @@
-/* Страница каталога: фильтры, сортировка, пагинация */
+/* Страница каталога: чипы категорий, фильтры, сортировка, пагинация */
 
 const state = new URLSearchParams(location.search);
 
@@ -14,22 +14,25 @@ async function loadCatalog() {
   const res = await fetch('/api/products?' + state.toString());
   const { total, page, limit, items } = await res.json();
 
-  const grid = document.getElementById('products');
-  grid.innerHTML = items.map(productCard).join('');
+  document.getElementById('products').innerHTML = items.map(productCard).join('');
   document.getElementById('empty').hidden = items.length > 0;
+  document.getElementById('cat-count').textContent =
+    total ? `${total} ${plural(total, 'товар', 'товара', 'товаров')}` : '';
 
-  // заголовок по категории
+  // заголовок
   const slug = state.get('category');
   if (slug) {
     const cats = await fetch('/api/categories').then((r) => r.json());
     const cat = cats.find((c) => c.slug === slug);
     if (cat) {
-      document.getElementById('cat-title').textContent = cat.name;
+      document.querySelector('#cat-title').firstChild.textContent = cat.name + ' ';
       document.getElementById('bc').textContent = cat.name;
       document.title = cat.name + ' — i:Store';
     }
   } else if (state.get('search')) {
-    document.getElementById('cat-title').textContent = `Поиск: «${state.get('search')}»`;
+    document.querySelector('#cat-title').firstChild.textContent = `Поиск: «${state.get('search')}» `;
+  } else if (state.get('sale')) {
+    document.querySelector('#cat-title').firstChild.textContent = 'Скидки ';
   }
 
   // пагинация
@@ -45,29 +48,33 @@ async function loadCatalog() {
   }
 }
 
-async function renderFilters() {
+async function renderChips() {
   const cats = await fetch('/api/categories').then((r) => r.json());
   const current = state.get('category') || '';
-  document.getElementById('filter-cats').innerHTML =
-    `<label><input type="radio" name="cat" value="" ${!current ? 'checked' : ''}> Все категории</label>` +
+  document.getElementById('chips').innerHTML =
+    `<a class="chip ${!current && !state.get('sale') ? 'active' : ''}" href="/catalog">Все</a>` +
     cats.map((c) =>
-      `<label><input type="radio" name="cat" value="${c.slug}" ${current === c.slug ? 'checked' : ''}> ${c.name}</label>`).join('');
+      `<a class="chip ${current === c.slug ? 'active' : ''}" href="/catalog?category=${c.slug}">${c.name}</a>`).join('') +
+    `<a class="chip ${state.get('sale') ? 'active' : ''}" href="/catalog?sale=1" style="color:${state.get('sale') ? '#fff' : 'var(--red)'}">Скидки %</a>`;
 
   document.getElementById('minPrice').value = state.get('minPrice') || '';
   document.getElementById('maxPrice').value = state.get('maxPrice') || '';
+  document.getElementById('inStock').checked = state.get('inStock') === '1';
+  document.getElementById('sale').checked = state.get('sale') === '1';
   document.getElementById('sort').value = state.get('sort') || '';
 }
 
 document.getElementById('apply').addEventListener('click', () => {
   state.delete('page');
   applyAndReload({
-    category: document.querySelector('input[name=cat]:checked')?.value,
     minPrice: document.getElementById('minPrice').value,
     maxPrice: document.getElementById('maxPrice').value,
+    inStock: document.getElementById('inStock').checked ? '1' : '',
+    sale: document.getElementById('sale').checked ? '1' : '',
   });
 });
 
-document.getElementById('reset').addEventListener('click', () => { location.search = ''; });
+document.getElementById('reset').addEventListener('click', () => { location.href = '/catalog'; });
 
 document.getElementById('sort').addEventListener('change', (e) => {
   state.delete('page');
@@ -75,4 +82,4 @@ document.getElementById('sort').addEventListener('change', (e) => {
 });
 
 loadCatalog();
-renderFilters();
+renderChips();

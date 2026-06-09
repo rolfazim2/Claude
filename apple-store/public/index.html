@@ -3,75 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>i:Store — магазин техники Apple</title>
+  <title>i:Store — магазин техники Apple: iPhone, iPad, Mac, Watch, AirPods</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'></text></svg>">
 </head>
 <body>
   <div id="site-header"></div>
 
   <main class="container">
-    <section class="hero">
-      <div class="hero-inner">
-        <div>
-          <h1>iPhone 16 Pro.<br>Это сила.</h1>
-          <p>Чип A18 Pro, камера 48 Мп с 5-кратным зумом и Apple Intelligence. Уже в наличии.</p>
-          <a class="btn" href="/catalog?category=iphone">Купить iPhone</a>
-        </div>
-        <img src="/img/hero.svg" alt="iPhone 16 Pro">
-      </div>
+    <section class="hero" id="hero" hidden>
+      <button class="hero-arrow prev" aria-label="Назад">←</button>
+      <div class="hero-track" id="hero-track"></div>
+      <button class="hero-arrow next" aria-label="Вперёд">→</button>
+      <div class="hero-dots" id="hero-dots"></div>
     </section>
 
     <section class="cats" id="home-cats"></section>
 
     <section>
       <div class="section-title">
-        <h2>Хиты продаж</h2>
-        <a href="/catalog">Смотреть все →</a>
+        <h2>Новинки</h2>
+        <a class="all-link" href="/catalog?sort=new">Смотреть все</a>
+        <div class="arrows">
+          <button class="slider-arrow">←</button>
+          <button class="slider-arrow">→</button>
+        </div>
       </div>
-      <div class="grid" id="featured"></div>
+      <div id="newest"></div>
+    </section>
+
+    <section class="promo-tiles">
+      <a class="promo-tile promo-dark" href="/catalog?sale=1">
+        <div>
+          <h3>Trade-in</h3>
+          <p>Сдайте старое устройство и получите скидку до 50 000 ₽ на новое</p>
+          <span class="tag">Узнать цену →</span>
+        </div>
+        <img src="/img/iphone.svg" alt="">
+      </a>
+      <a class="promo-tile promo-grey" href="/catalog">
+        <div>
+          <h3>Рассрочка 0-0-24</h3>
+          <p>Без первого взноса и переплат — от 1 040 ₽ в месяц</p>
+          <span class="tag" style="color:var(--red)">Подробнее →</span>
+        </div>
+        <img src="/img/watch.svg" alt="">
+      </a>
     </section>
 
     <section>
       <div class="section-title">
-        <h2>Новинки</h2>
-        <a href="/catalog?sort=new">Смотреть все →</a>
+        <h2>Хиты продаж</h2>
+        <a class="all-link" href="/catalog?sort=rating">Смотреть все</a>
+        <div class="arrows">
+          <button class="slider-arrow">←</button>
+          <button class="slider-arrow">→</button>
+        </div>
       </div>
-      <div class="grid" id="newest"></div>
+      <div id="featured"></div>
+    </section>
+
+    <section>
+      <div class="section-title">
+        <h2>Выгодные предложения</h2>
+        <a class="all-link" href="/catalog?sale=1">Все скидки</a>
+        <div class="arrows">
+          <button class="slider-arrow">←</button>
+          <button class="slider-arrow">→</button>
+        </div>
+      </div>
+      <div id="sale"></div>
+    </section>
+
+    <section id="viewed-section" hidden>
+      <div class="section-title">
+        <h2>Вы недавно смотрели</h2>
+        <div class="arrows">
+          <button class="slider-arrow">←</button>
+          <button class="slider-arrow">→</button>
+        </div>
+      </div>
+      <div id="viewed"></div>
     </section>
 
     <section class="features">
       <div class="feature" id="f1"><div><b>Доставка за 2 часа</b><span>По Москве — бесплатно от 5 000 ₽</span></div></div>
       <div class="feature" id="f2"><div><b>Официальная гарантия</b><span>1 год гарантии на всю технику</span></div></div>
-      <div class="feature" id="f3"><div><b>Оплата как удобно</b><span>Картой, наличными, в рассрочку</span></div></div>
+      <div class="feature" id="f3"><div><b>Рассрочка 0-0-24</b><span>Картой, наличными, частями</span></div></div>
       <div class="feature" id="f4"><div><b>Trade-in</b><span>Обменяйте старое устройство на новое</span></div></div>
+    </section>
+
+    <section class="seo-block">
+      <h2>i:Store — техника Apple с официальной гарантией</h2>
+      <p>В нашем магазине вы найдёте весь модельный ряд Apple: смартфоны iPhone, планшеты iPad, ноутбуки MacBook и моноблоки iMac, умные часы Apple Watch, наушники AirPods и оригинальные аксессуары. Вся техника сертифицирована и обеспечивается официальной гарантией.</p>
+      <p>Заказывайте с доставкой за 2 часа по Москве или забирайте в магазине в день заказа. Принимаем к оплате карты, СБП и наличные, оформляем рассрочку без переплат и принимаем устройства в Trade-in.</p>
     </section>
   </main>
 
   <div id="site-footer"></div>
 
   <script src="/js/app.js"></script>
-  <script>
-    // иконки преимуществ
-    addEventListener('DOMContentLoaded', () => {
-      const icons = { f1: 'truck', f2: 'shield', f3: 'card', f4: 'refresh' };
-      for (const [id, icon] of Object.entries(icons)) {
-        document.getElementById(id).insertAdjacentHTML('afterbegin', Icons[icon]);
-      }
-
-      fetch('/api/categories').then(r => r.json()).then(cats => {
-        document.getElementById('home-cats').innerHTML = cats.map(c =>
-          `<a class="cat-tile" href="/catalog?category=${c.slug}">${Icons[c.icon] || ''}<span>${c.name}</span></a>`
-        ).join('');
-      });
-
-      fetch('/api/products?limit=60').then(r => r.json()).then(({ items }) => {
-        document.getElementById('featured').innerHTML =
-          items.filter(p => p.featured).slice(0, 4).map(productCard).join('');
-        document.getElementById('newest').innerHTML =
-          [...items].sort((a, b) => b.id - a.id).slice(0, 4).map(productCard).join('');
-      });
-    });
-  </script>
+  <script src="/js/home.js"></script>
 </body>
 </html>

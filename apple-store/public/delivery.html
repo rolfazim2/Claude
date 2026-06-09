@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Доставка и оплата — i:Store</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <div class="breadcrumbs"><a href="/">Главная</a> / Доставка и оплата</div>
+    <h1 class="page-title">Доставка и оплата</h1>
+
+    <section class="features" style="margin-top:0">
+      <div class="feature" id="d1"><div><b>Курьером за 2 часа</b><span>По Москве в пределах МКАД. Бесплатно от 5 000 ₽, иначе 490 ₽</span></div></div>
+      <div class="feature" id="d2"><div><b>Самовывоз сегодня</b><span>Из магазина в ТЦ «Центральный» — бесплатно, ежедневно 10:00–22:00</span></div></div>
+      <div class="feature" id="d3"><div><b>По всей России</b><span>Транспортными компаниями, 2–7 дней, расчёт при оформлении</span></div></div>
+      <div class="feature" id="d4"><div><b>Проверка при получении</b><span>Вскройте коробку и проверьте устройство при курьере</span></div></div>
+    </section>
+
+    <div class="seo-block">
+      <h2>Способы оплаты</h2>
+      <p><b>Картой онлайн</b> — Visa, MasterCard, МИР, а также через СБП. Деньги списываются после подтверждения заказа.</p>
+      <p><b>При получении</b> — наличными или картой курьеру либо в магазине.</p>
+      <p><b>Рассрочка 0-0-24</b> — без первоначального взноса и переплат на срок до 24 месяцев. Решение банка за 2 минуты, нужен только паспорт.</p>
+    </div>
+
+    <div class="seo-block">
+      <h2>Гарантия и возврат</h2>
+      <p>На всю технику действует официальная гарантия 1 год. Обмен и возврат товара надлежащего качества — в течение 14 дней с момента покупки при сохранении товарного вида и комплектации.</p>
+      <p>Вопросы? Звоните: <b>8 800 123-45-67</b> (ежедневно 10:00–22:00) или пишите на hello@istore.example.</p>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    addEventListener('DOMContentLoaded', () => {
+      const icons = { d1: 'truck', d2: 'store', d3: 'refresh', d4: 'shield' };
+      for (const [id, icon] of Object.entries(icons)) {
+        document.getElementById(id).insertAdjacentHTML('afterbegin', Icons[icon]);
+      }
+    });
+  </script>
+</body>
+</html>

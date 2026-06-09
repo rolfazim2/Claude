@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Избранное — i:Store</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <h1 class="page-title">Избранное <small id="fav-count-title"></small></h1>
+    <div class="grid" id="fav-grid"></div>
+    <div class="empty" id="fav-empty" hidden>
+      В избранном пока пусто.<br>Нажимайте ♡ на карточках товаров, чтобы сохранить их здесь.<br><br>
+      <a class="btn" href="/catalog">Перейти в каталог</a>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    async function renderFavorites() {
+      const ids = Fav.read();
+      const grid = document.getElementById('fav-grid');
+      const empty = document.getElementById('fav-empty');
+      if (!ids.length) {
+        grid.innerHTML = '';
+        empty.hidden = false;
+        document.getElementById('fav-count-title').textContent = '';
+        return;
+      }
+      const { items } = await fetch('/api/products?ids=' + ids.join(',') + '&limit=60').then(r => r.json());
+      grid.innerHTML = items.map(productCard).join('');
+      empty.hidden = items.length > 0;
+      document.getElementById('fav-count-title').textContent =
+        `${items.length} ${plural(items.length, 'товар', 'товара', 'товаров')}`;
+    }
+
+    // перерисовываем список после снятия сердечка
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-fav]')) setTimeout(renderFavorites, 150);
+    });
+
+    renderFavorites();
+  </script>
+</body>
+</html>

@@ -54,6 +54,9 @@ const NAV_ICONS = {
   products: '<svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>',
   orders: '<svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg>',
   categories: '<svg viewBox="0 0 24 24"><path d="M3 5h7l2 3h9v11H3z"/></svg>',
+  banners: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-4 4 3 4-5 5 6"/></svg>',
+  promos: '<svg viewBox="0 0 24 24"><path d="M20 12l-8 8-9-9V4h7z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  reviews: '<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.2l5.9-.9z"/></svg>',
 };
 
 /* ------------------------------ login ------------------------------ */
@@ -112,6 +115,9 @@ function renderShell(page, title, breadcrumb, bodyHTML, headerAction = '') {
       <a href="#products" class="${page === 'products' ? 'active' : ''}">${NAV_ICONS.products}<span>Товары</span></a>
       <a href="#orders" class="${page === 'orders' ? 'active' : ''}">${NAV_ICONS.orders}<span>Заказы</span></a>
       <a href="#categories" class="${page === 'categories' ? 'active' : ''}">${NAV_ICONS.categories}<span>Категории</span></a>
+      <a href="#banners" class="${page === 'banners' ? 'active' : ''}">${NAV_ICONS.banners}<span>Баннеры</span></a>
+      <a href="#promos" class="${page === 'promos' ? 'active' : ''}">${NAV_ICONS.promos}<span>Промокоды</span></a>
+      <a href="#reviews" class="${page === 'reviews' ? 'active' : ''}">${NAV_ICONS.reviews}<span>Отзывы</span></a>
     </nav>
     <main class="content">
       <div class="page-header">
@@ -450,6 +456,228 @@ async function renderCategories() {
   });
 }
 
+/* ------------------------------ banners ------------------------------ */
+
+async function renderBanners() {
+  const banners = await api('/admin/banners');
+  renderShell('banners', 'Баннеры', 'Дизайн / Баннеры главной', `
+    <div class="panel">
+      <div class="panel-heading">Слайды карусели (${banners.length})</div>
+      <table>
+        <tr><th>Заголовок</th><th>Подзаголовок</th><th>Ссылка</th><th>Статус</th><th class="text-right">Действия</th></tr>
+        ${banners.map((b) => `
+          <tr>
+            <td><b>${esc(b.title)}</b></td>
+            <td class="muted">${esc(b.subtitle)}</td>
+            <td><code>${esc(b.link)}</code></td>
+            <td><span class="label label-${b.active ? 'enabled' : 'disabled'}">${b.active ? 'Активен' : 'Скрыт'}</span></td>
+            <td class="text-right">
+              <button class="btn btn-sm" data-edit="${b.id}">Изменить</button>
+              <button class="btn btn-sm btn-danger" data-del="${b.id}">Удалить</button>
+            </td>
+          </tr>`).join('')}
+      </table>
+    </div>`,
+    '<button class="btn btn-success" id="add-banner">+ Добавить баннер</button>');
+
+  document.getElementById('add-banner').addEventListener('click', () => bannerModal());
+  document.getElementById('page-body').addEventListener('click', async (e) => {
+    const edit = e.target.closest('[data-edit]');
+    const del = e.target.closest('[data-del]');
+    if (edit) bannerModal(banners.find((b) => b.id === +edit.dataset.edit));
+    if (del && confirm('Удалить баннер?')) {
+      await api('/admin/banners/' + del.dataset.del, { method: 'DELETE' });
+      toast('Баннер удалён');
+      renderBanners();
+    }
+  });
+}
+
+function bannerModal(b = null) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <div class="panel-heading">${b ? 'Редактирование баннера' : 'Новый баннер'}<button data-close>×</button></div>
+      <form id="banner-form">
+        <div class="panel-body">
+          <div class="form-row"><label>Заголовок *</label><input name="title" required value="${esc(b?.title || '')}"></div>
+          <div class="form-row"><label>Подзаголовок</label><textarea name="subtitle">${esc(b?.subtitle || '')}</textarea></div>
+          <div class="form-row"><label>Текст кнопки</label><input name="cta" value="${esc(b?.cta || 'Подробнее')}"></div>
+          <div class="form-row"><label>Ссылка</label><input name="link" value="${esc(b?.link || '/catalog')}"></div>
+          <div class="form-row"><label>Изображение</label><input name="image" value="${esc(b?.image || '/img/hero.svg')}"></div>
+          <div class="form-row"><label>Фон (CSS)</label>
+            <div>
+              <input name="bg" value="${esc(b?.bg || 'linear-gradient(115deg,#141418,#38204e)')}">
+              <div class="form-hint">Например: linear-gradient(115deg,#141418,#38204e) или #f5f5f7</div>
+            </div>
+          </div>
+          <div class="form-row"><label>Светлый текст</label><input type="checkbox" name="light" style="width:auto;margin-top:9px" ${b?.light !== false ? 'checked' : ''}></div>
+          <div class="form-row"><label>Активен</label><input type="checkbox" name="active" style="width:auto;margin-top:9px" ${b?.active !== false ? 'checked' : ''}></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-close>Отмена</button>
+          <button type="submit" class="btn btn-success">Сохранить</button>
+        </div>
+      </form>
+    </div>`;
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop || e.target.closest('[data-close]')) backdrop.remove();
+  });
+
+  backdrop.querySelector('#banner-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const body = {
+      title: form.get('title'),
+      subtitle: form.get('subtitle'),
+      cta: form.get('cta'),
+      link: form.get('link'),
+      image: form.get('image'),
+      bg: form.get('bg'),
+      light: form.get('light') === 'on',
+      active: form.get('active') === 'on',
+    };
+    try {
+      if (b) await api('/admin/banners/' + b.id, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/admin/banners', { method: 'POST', body: JSON.stringify(body) });
+      backdrop.remove();
+      toast(b ? 'Баннер обновлён' : 'Баннер добавлен');
+      renderBanners();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  document.body.appendChild(backdrop);
+}
+
+/* ------------------------------ promos ------------------------------ */
+
+async function renderPromos() {
+  const promos = await api('/admin/promos');
+  renderShell('promos', 'Промокоды', 'Маркетинг / Промокоды', `
+    <div class="panel">
+      <div class="panel-heading">Промокоды (${promos.length})</div>
+      <table>
+        <tr><th>Код</th><th>Скидка</th><th>Мин. сумма</th><th>Описание</th><th>Статус</th><th class="text-right"></th></tr>
+        ${promos.map((p) => `
+          <tr>
+            <td><code><b>${esc(p.code)}</b></code></td>
+            <td>${p.type === 'percent' ? p.value + '%' : fmt(p.value)}</td>
+            <td>${p.minTotal ? fmt(p.minTotal) : '—'}</td>
+            <td class="muted">${esc(p.description)}</td>
+            <td>
+              <button class="btn btn-sm ${p.active ? 'btn-success' : 'btn-default'}" data-toggle="${p.id}" data-active="${p.active ? 1 : 0}">
+                ${p.active ? 'Активен' : 'Выключен'}
+              </button>
+            </td>
+            <td class="text-right"><button class="btn btn-sm btn-danger" data-del="${p.id}">Удалить</button></td>
+          </tr>`).join('')}
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-heading">Создать промокод</div>
+      <div class="panel-body">
+        <form id="promo-form">
+          <div class="form-row"><label>Код *</label><input name="code" required placeholder="SALE15" style="text-transform:uppercase"></div>
+          <div class="form-row"><label>Тип</label>
+            <select name="type"><option value="percent">Процент от суммы</option><option value="fixed">Фиксированная сумма, ₽</option></select>
+          </div>
+          <div class="form-row"><label>Размер *</label><input name="value" type="number" min="1" required placeholder="10"></div>
+          <div class="form-row"><label>Мин. сумма заказа</label><input name="minTotal" type="number" min="0" placeholder="0"></div>
+          <div class="form-row"><label>Описание</label><input name="description" placeholder="Скидка 10% на всё"></div>
+          <div class="form-row"><label></label><button class="btn btn-success">Создать</button></div>
+        </form>
+      </div>
+    </div>`);
+
+  document.getElementById('promo-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    try {
+      await api('/admin/promos', { method: 'POST', body: JSON.stringify(Object.fromEntries(form)) });
+      toast('Промокод создан');
+      renderPromos();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  document.getElementById('page-body').addEventListener('click', async (e) => {
+    const tgl = e.target.closest('[data-toggle]');
+    const del = e.target.closest('[data-del]');
+    if (tgl) {
+      await api('/admin/promos/' + tgl.dataset.toggle, {
+        method: 'PUT',
+        body: JSON.stringify({ active: tgl.dataset.active !== '1' }),
+      });
+      renderPromos();
+    }
+    if (del && confirm('Удалить промокод?')) {
+      await api('/admin/promos/' + del.dataset.del, { method: 'DELETE' });
+      toast('Промокод удалён');
+      renderPromos();
+    }
+  });
+}
+
+/* ------------------------------ reviews ------------------------------ */
+
+const REVIEW_STATUS = { pending: 'На модерации', approved: 'Опубликован', rejected: 'Отклонён' };
+const REVIEW_LABEL = { pending: 'processing', approved: 'completed', rejected: 'cancelled' };
+
+async function renderReviews() {
+  const reviews = await api('/admin/reviews');
+  const pending = reviews.filter((r) => r.status === 'pending').length;
+  renderShell('reviews', 'Отзывы', 'Каталог / Отзывы', `
+    <div class="panel">
+      <div class="panel-heading">Отзывы (${reviews.length})
+        ${pending ? `<span class="label label-processing">на модерации: ${pending}</span>` : ''}
+      </div>
+      ${reviews.length ? `
+        <table>
+          <tr><th>Дата</th><th>Товар</th><th>Автор</th><th>Оценка</th><th>Текст</th><th>Статус</th><th class="text-right"></th></tr>
+          ${reviews.map((r) => `
+            <tr>
+              <td>${new Date(r.createdAt).toLocaleDateString('ru-RU')}</td>
+              <td style="max-width:180px">${esc(r.productName)}</td>
+              <td>${esc(r.name)}</td>
+              <td>${'★'.repeat(r.rating)}<span class="muted">${'★'.repeat(5 - r.rating)}</span></td>
+              <td class="muted" style="max-width:280px">${esc(r.text)}</td>
+              <td><span class="label label-${REVIEW_LABEL[r.status]}">${REVIEW_STATUS[r.status]}</span></td>
+              <td class="text-right" style="white-space:nowrap">
+                ${r.status !== 'approved' ? `<button class="btn btn-sm btn-success" data-approve="${r.id}">✓</button>` : ''}
+                ${r.status !== 'rejected' ? `<button class="btn btn-sm btn-default" data-reject="${r.id}">✗</button>` : ''}
+                <button class="btn btn-sm btn-danger" data-del="${r.id}">Удалить</button>
+              </td>
+            </tr>`).join('')}
+        </table>` : '<div class="panel-body muted">Отзывов пока нет</div>'}
+    </div>`);
+
+  document.getElementById('page-body').addEventListener('click', async (e) => {
+    const approve = e.target.closest('[data-approve]');
+    const reject = e.target.closest('[data-reject]');
+    const del = e.target.closest('[data-del]');
+    if (approve) {
+      await api('/admin/reviews/' + approve.dataset.approve, { method: 'PUT', body: JSON.stringify({ status: 'approved' }) });
+      toast('Отзыв опубликован');
+      renderReviews();
+    }
+    if (reject) {
+      await api('/admin/reviews/' + reject.dataset.reject, { method: 'PUT', body: JSON.stringify({ status: 'rejected' }) });
+      toast('Отзыв отклонён');
+      renderReviews();
+    }
+    if (del && confirm('Удалить отзыв безвозвратно?')) {
+      await api('/admin/reviews/' + del.dataset.del, { method: 'DELETE' });
+      toast('Отзыв удалён');
+      renderReviews();
+    }
+  });
+}
+
 /* ------------------------------ router ------------------------------ */
 
 const routes = {
@@ -457,6 +685,9 @@ const routes = {
   products: renderProducts,
   orders: renderOrders,
   categories: renderCategories,
+  banners: renderBanners,
+  promos: renderPromos,
+  reviews: renderReviews,
 };
 
 function navigate(page) {

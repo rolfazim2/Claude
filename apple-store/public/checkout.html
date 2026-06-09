@@ -22,8 +22,8 @@
             <div class="field full">
               <label>Способ получения</label>
               <div class="radio-cards">
-                <label class="radio-card"><input type="radio" name="delivery" value="courier" checked>Курьером — от 2 часов</label>
-                <label class="radio-card"><input type="radio" name="delivery" value="pickup">Самовывоз — сегодня</label>
+                <label class="radio-card"><input type="radio" name="delivery" value="courier" checked>Курьером<small>Сегодня, от 2 часов · бесплатно от 5 000 ₽</small></label>
+                <label class="radio-card"><input type="radio" name="delivery" value="pickup">Самовывоз<small>Сегодня из ТЦ «Центральный» · бесплатно</small></label>
               </div>
             </div>
 
@@ -32,8 +32,9 @@
             <div class="field full">
               <label>Оплата</label>
               <div class="radio-cards">
-                <label class="radio-card"><input type="radio" name="payment" value="card" checked>Картой онлайн</label>
-                <label class="radio-card"><input type="radio" name="payment" value="cash">При получении</label>
+                <label class="radio-card"><input type="radio" name="payment" value="card" checked>Картой онлайн<small>Visa, MasterCard, МИР, СБП</small></label>
+                <label class="radio-card"><input type="radio" name="payment" value="cash">При получении<small>Наличными или картой</small></label>
+                <label class="radio-card"><input type="radio" name="payment" value="installment">Рассрочка 0-0-24<small>Без переплат, решение за 2 минуты</small></label>
               </div>
             </div>
 
@@ -45,6 +46,7 @@
         <aside class="summary">
           <h3>Ваш заказ</h3>
           <div id="order-items"></div>
+          <div id="order-discount"></div>
           <div class="summary-total"><span>Итого</span><span id="order-total"></span></div>
         </aside>
       </div>
@@ -55,7 +57,8 @@
 
   <script src="/js/app.js"></script>
   <script>
-    let cartRows = [];
+    let promo = null;
+    try { promo = JSON.parse(sessionStorage.getItem('promo')); } catch {}
 
     async function renderSummary() {
       const items = Cart.read();
@@ -64,14 +67,31 @@
           '<div class="empty">Корзина пуста.<br><br><a class="btn" href="/catalog">Перейти в каталог</a></div>';
         return;
       }
-      const products = await Promise.all(items.map(i =>
-        fetch('/api/products/' + i.id).then(r => r.ok ? r.json() : null)));
-      cartRows = items.map((item, idx) => ({ ...item, product: products[idx] })).filter(r => r.product);
+      const { items: products } = await fetch('/api/products?ids=' + items.map(i => i.id).join(',') + '&limit=60').then(r => r.json());
+      const rows = items
+        .map(item => ({ ...item, product: products.find(p => p.id === item.id) }))
+        .filter(r => r.product);
+      const subtotal = rows.reduce((s, r) => s + r.product.price * r.qty, 0);
 
-      document.getElementById('order-items').innerHTML = cartRows.map(r =>
+      document.getElementById('order-items').innerHTML = rows.map(r =>
         `<div class="summary-row"><span>${escapeHtml(r.product.name)} × ${r.qty}</span><span>${fmt(r.product.price * r.qty)}</span></div>`).join('');
-      document.getElementById('order-total').textContent =
-        fmt(cartRows.reduce((s, r) => s + r.product.price * r.qty, 0));
+
+      let discount = 0;
+      if (promo) {
+        const res = await fetch('/api/promo/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: promo.code, total: subtotal }),
+        });
+        if (res.ok) {
+          discount = (await res.json()).discount;
+          document.getElementById('order-discount').innerHTML =
+            `<div class="summary-row discount"><span>Промокод ${escapeHtml(promo.code)}</span><span>−${fmt(discount)}</span></div>`;
+        } else {
+          promo = null;
+        }
+      }
+      document.getElementById('order-total').textContent = fmt(subtotal - discount);
     }
 
     document.getElementById('checkout-form').addEventListener('submit', async (e) => {
@@ -83,17 +103,19 @@
         body: JSON.stringify({
           customer: Object.fromEntries(form),
           items: Cart.read(),
+          promoCode: promo ? promo.code : null,
         }),
       });
       const data = await res.json();
       if (!res.ok) return toast(data.error || 'Ошибка оформления');
 
       Cart.clear();
+      sessionStorage.removeItem('promo');
       document.getElementById('checkout-root').innerHTML = `
         <div class="order-done">
           <div class="check">✓</div>
           <h1>Заказ №${data.id} оформлен!</h1>
-          <p>Сумма заказа: <b>${fmt(data.total)}</b>.<br>Мы свяжемся с вами в ближайшее время для подтверждения.</p>
+          <p>Сумма заказа: <b>${fmt(data.total)}</b>${data.discount ? ` (скидка ${fmt(data.discount)})` : ''}.<br>Мы свяжемся с вами в ближайшее время для подтверждения.</p>
           <a class="btn" href="/catalog">Продолжить покупки</a>
         </div>`;
     });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * iStore — интернет-магазин техники Apple
+ * i:Store — интернет-магазин техники Apple
  * Бэкенд: чистый Node.js (без внешних зависимостей).
  * Запуск: node server.js  →  http://localhost:3000
  *
@@ -37,6 +37,9 @@ const db = {
   products: loadJSON('products.json', []),
   categories: loadJSON('categories.json', []),
   orders: loadJSON('orders.json', []),
+  banners: loadJSON('banners.json', []),
+  promos: loadJSON('promos.json', []),
+  reviews: loadJSON('reviews.json', []),
   settings: loadJSON('settings.json', {}),
 };
 
@@ -105,6 +108,32 @@ function nextId(items) {
   return items.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
 }
 
+/* Рейтинг товара по одобренным отзывам */
+function ratingFor(productId) {
+  const approved = db.reviews.filter((r) => r.productId === productId && r.status === 'approved');
+  if (!approved.length) return { rating: 0, reviewsCount: 0 };
+  const avg = approved.reduce((s, r) => s + r.rating, 0) / approved.length;
+  return { rating: Math.round(avg * 10) / 10, reviewsCount: approved.length };
+}
+
+function withRating(product) {
+  return { ...product, ...ratingFor(product.id) };
+}
+
+/* Применение промокода: возвращает {discount, promo} либо {error} */
+function applyPromo(code, total) {
+  if (!code) return { discount: 0, promo: null };
+  const promo = db.promos.find((p) => p.code.toLowerCase() === String(code).toLowerCase() && p.active);
+  if (!promo) return { error: 'Промокод не найден или неактивен' };
+  if (promo.minTotal && total < promo.minTotal) {
+    return { error: `Промокод действует от ${promo.minTotal.toLocaleString('ru-RU')} ₽` };
+  }
+  const discount = promo.type === 'percent'
+    ? Math.round(total * promo.value / 100)
+    : Math.min(promo.value, total);
+  return { discount, promo };
+}
+
 /* -------------------------------------------------------------------- api */
 
 const api = {
@@ -113,6 +142,20 @@ const api = {
 
   'GET /api/categories': (req, res) => {
     sendJSON(res, 200, db.categories);
+  },
+
+  'GET /api/banners': (req, res) => {
+    sendJSON(res, 200, db.banners.filter((b) => b.active));
+  },
+
+  'GET /api/suggest': (req, res, url) => {
+    const q = (url.searchParams.get('q') || '').toLowerCase().trim();
+    if (q.length < 2) return sendJSON(res, 200, []);
+    const found = db.products
+      .filter((p) => p.status !== 'disabled' && p.name.toLowerCase().includes(q))
+      .slice(0, 6)
+      .map((p) => ({ id: p.id, name: p.name, price: p.price, image: p.image }));
+    sendJSON(res, 200, found);
   },
 
   'GET /api/products': (req, res, url) => {
@@ -129,11 +172,20 @@ const api = {
     }
     if (q.get('minPrice')) items = items.filter((p) => p.price >= +q.get('minPrice'));
     if (q.get('maxPrice')) items = items.filter((p) => p.price <= +q.get('maxPrice'));
+    if (q.get('inStock') === '1') items = items.filter((p) => p.stock > 0);
+    if (q.get('sale') === '1') items = items.filter((p) => p.oldPrice);
+    if (q.get('ids')) {
+      const ids = q.get('ids').split(',').map(Number);
+      items = items.filter((p) => ids.includes(p.id));
+    }
+
+    items = items.map(withRating);
 
     switch (q.get('sort')) {
       case 'price_asc': items.sort((a, b) => a.price - b.price); break;
       case 'price_desc': items.sort((a, b) => b.price - a.price); break;
       case 'name': items.sort((a, b) => a.name.localeCompare(b.name, 'ru')); break;
+      case 'rating': items.sort((a, b) => b.rating - a.rating); break;
       case 'new': items.sort((a, b) => b.id - a.id); break;
       default: items.sort((a, b) => (b.featured === true) - (a.featured === true));
     }
@@ -151,12 +203,53 @@ const api = {
     if (!product || product.status === 'disabled') {
       return sendJSON(res, 404, { error: 'Товар не найден' });
     }
-    sendJSON(res, 200, product);
+    sendJSON(res, 200, withRating(product));
+  },
+
+  'GET /api/products/:id/reviews': (req, res, url, params) => {
+    const reviews = db.reviews
+      .filter((r) => r.productId === +params.id && r.status === 'approved')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    sendJSON(res, 200, reviews);
+  },
+
+  'POST /api/products/:id/reviews': async (req, res, url, params) => {
+    const product = db.products.find((p) => p.id === +params.id);
+    if (!product) return sendJSON(res, 404, { error: 'Товар не найден' });
+    const body = await readBody(req);
+    const rating = Math.min(5, Math.max(1, Math.round(+body.rating || 0)));
+    if (!body.name || !body.text || !rating) {
+      return sendJSON(res, 400, { error: 'Заполните имя, оценку и текст отзыва' });
+    }
+    const review = {
+      id: nextId(db.reviews),
+      productId: product.id,
+      name: String(body.name).slice(0, 60),
+      rating,
+      text: String(body.text).slice(0, 1000),
+      createdAt: new Date().toISOString(),
+      status: 'pending', // публикуется после модерации в админке
+    };
+    db.reviews.push(review);
+    saveJSON('reviews.json', db.reviews);
+    sendJSON(res, 201, { ok: true, message: 'Отзыв отправлен на модерацию' });
+  },
+
+  'POST /api/promo/validate': async (req, res) => {
+    const { code, total } = await readBody(req);
+    const result = applyPromo(code, +total || 0);
+    if (result.error) return sendJSON(res, 400, { error: result.error });
+    if (!result.promo) return sendJSON(res, 400, { error: 'Укажите промокод' });
+    sendJSON(res, 200, {
+      code: result.promo.code,
+      discount: result.discount,
+      description: result.promo.description || '',
+    });
   },
 
   'POST /api/orders': async (req, res) => {
     const body = await readBody(req);
-    const { customer, items } = body;
+    const { customer, items, promoCode } = body;
 
     if (!customer || !customer.name || !customer.phone) {
       return sendJSON(res, 400, { error: 'Укажите имя и телефон' });
@@ -179,6 +272,10 @@ const api = {
       });
     }
 
+    const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const promoResult = applyPromo(promoCode, subtotal);
+    if (promoResult.error) return sendJSON(res, 400, { error: promoResult.error });
+
     const order = {
       id: nextId(db.orders),
       createdAt: new Date().toISOString(),
@@ -190,15 +287,18 @@ const api = {
         address: String(customer.address || '').slice(0, 300),
         comment: String(customer.comment || '').slice(0, 500),
         delivery: customer.delivery === 'pickup' ? 'pickup' : 'courier',
-        payment: customer.payment === 'card' ? 'card' : 'cash',
+        payment: ['card', 'installment'].includes(customer.payment) ? customer.payment : 'cash',
       },
       items: orderItems,
-      total: orderItems.reduce((sum, i) => sum + i.price * i.qty, 0),
+      subtotal,
+      promoCode: promoResult.promo ? promoResult.promo.code : null,
+      discount: promoResult.discount,
+      total: subtotal - promoResult.discount,
     };
 
     db.orders.push(order);
     saveJSON('orders.json', db.orders);
-    sendJSON(res, 201, { id: order.id, total: order.total });
+    sendJSON(res, 201, { id: order.id, total: order.total, discount: order.discount });
   },
 
   /* --- админка --- */
@@ -223,13 +323,14 @@ const api = {
       sales: totalSales,
       products: db.products.length,
       customers: new Set(db.orders.map((o) => o.customer.phone)).size,
+      pendingReviews: db.reviews.filter((r) => r.status === 'pending').length,
       recentOrders: [...db.orders].reverse().slice(0, 8),
     });
   },
 
   'GET /api/admin/products': (req, res) => {
     if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
-    sendJSON(res, 200, db.products);
+    sendJSON(res, 200, db.products.map(withRating));
   },
 
   'POST /api/admin/products': async (req, res) => {
@@ -304,6 +405,125 @@ const api = {
     saveJSON('categories.json', db.categories);
     sendJSON(res, 200, { ok: true });
   },
+
+  /* --- баннеры --- */
+
+  'GET /api/admin/banners': (req, res) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    sendJSON(res, 200, db.banners);
+  },
+
+  'POST /api/admin/banners': async (req, res) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const banner = sanitizeBanner(await readBody(req));
+    if (!banner.title) return sendJSON(res, 400, { error: 'Нужен заголовок' });
+    banner.id = nextId(db.banners);
+    db.banners.push(banner);
+    saveJSON('banners.json', db.banners);
+    sendJSON(res, 201, banner);
+  },
+
+  'PUT /api/admin/banners/:id': async (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const index = db.banners.findIndex((b) => b.id === +params.id);
+    if (index === -1) return sendJSON(res, 404, { error: 'Баннер не найден' });
+    const banner = sanitizeBanner(await readBody(req));
+    banner.id = +params.id;
+    db.banners[index] = banner;
+    saveJSON('banners.json', db.banners);
+    sendJSON(res, 200, banner);
+  },
+
+  'DELETE /api/admin/banners/:id': (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const index = db.banners.findIndex((b) => b.id === +params.id);
+    if (index === -1) return sendJSON(res, 404, { error: 'Баннер не найден' });
+    db.banners.splice(index, 1);
+    saveJSON('banners.json', db.banners);
+    sendJSON(res, 200, { ok: true });
+  },
+
+  /* --- промокоды --- */
+
+  'GET /api/admin/promos': (req, res) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    sendJSON(res, 200, db.promos);
+  },
+
+  'POST /api/admin/promos': async (req, res) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const body = await readBody(req);
+    if (!body.code || !(+body.value > 0)) {
+      return sendJSON(res, 400, { error: 'Нужны код и размер скидки' });
+    }
+    if (db.promos.some((p) => p.code.toLowerCase() === String(body.code).toLowerCase())) {
+      return sendJSON(res, 400, { error: 'Такой промокод уже есть' });
+    }
+    const promo = {
+      id: nextId(db.promos),
+      code: String(body.code).toUpperCase().slice(0, 30),
+      type: body.type === 'fixed' ? 'fixed' : 'percent',
+      value: +body.value,
+      minTotal: Math.max(0, +body.minTotal || 0),
+      description: String(body.description || '').slice(0, 200),
+      active: body.active !== false,
+    };
+    db.promos.push(promo);
+    saveJSON('promos.json', db.promos);
+    sendJSON(res, 201, promo);
+  },
+
+  'PUT /api/admin/promos/:id': async (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const promo = db.promos.find((p) => p.id === +params.id);
+    if (!promo) return sendJSON(res, 404, { error: 'Промокод не найден' });
+    const { active } = await readBody(req);
+    promo.active = !!active;
+    saveJSON('promos.json', db.promos);
+    sendJSON(res, 200, promo);
+  },
+
+  'DELETE /api/admin/promos/:id': (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const index = db.promos.findIndex((p) => p.id === +params.id);
+    if (index === -1) return sendJSON(res, 404, { error: 'Промокод не найден' });
+    db.promos.splice(index, 1);
+    saveJSON('promos.json', db.promos);
+    sendJSON(res, 200, { ok: true });
+  },
+
+  /* --- модерация отзывов --- */
+
+  'GET /api/admin/reviews': (req, res) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const reviews = [...db.reviews].reverse().map((r) => ({
+      ...r,
+      productName: db.products.find((p) => p.id === r.productId)?.name || '—',
+    }));
+    sendJSON(res, 200, reviews);
+  },
+
+  'PUT /api/admin/reviews/:id': async (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const review = db.reviews.find((r) => r.id === +params.id);
+    if (!review) return sendJSON(res, 404, { error: 'Отзыв не найден' });
+    const { status } = await readBody(req);
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return sendJSON(res, 400, { error: 'Неверный статус' });
+    }
+    review.status = status;
+    saveJSON('reviews.json', db.reviews);
+    sendJSON(res, 200, review);
+  },
+
+  'DELETE /api/admin/reviews/:id': (req, res, url, params) => {
+    if (!checkAuth(req)) return sendJSON(res, 401, { error: 'Unauthorized' });
+    const index = db.reviews.findIndex((r) => r.id === +params.id);
+    if (index === -1) return sendJSON(res, 404, { error: 'Отзыв не найден' });
+    db.reviews.splice(index, 1);
+    saveJSON('reviews.json', db.reviews);
+    sendJSON(res, 200, { ok: true });
+  },
 };
 
 function sanitizeProduct(body) {
@@ -320,6 +540,19 @@ function sanitizeProduct(body) {
     featured: !!body.featured,
     badge: String(body.badge || '').slice(0, 30),
     status: body.status === 'disabled' ? 'disabled' : 'enabled',
+  };
+}
+
+function sanitizeBanner(body) {
+  return {
+    title: String(body.title || '').slice(0, 100),
+    subtitle: String(body.subtitle || '').slice(0, 200),
+    cta: String(body.cta || 'Подробнее').slice(0, 40),
+    link: String(body.link || '/catalog').slice(0, 200),
+    image: String(body.image || '').slice(0, 300),
+    bg: String(body.bg || 'linear-gradient(120deg,#16161a,#3a2050)').slice(0, 200),
+    light: body.light !== false, // светлый текст на тёмном фоне
+    active: body.active !== false,
   };
 }
 
@@ -410,6 +643,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`iStore запущен:  http://localhost:${PORT}`);
-  console.log(`Админка:         http://localhost:${PORT}/admin  (admin / admin)`);
+  console.log(`i:Store запущен:  http://localhost:${PORT}`);
+  console.log(`Админка:          http://localhost:${PORT}/admin  (admin / admin)`);
 });

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "code": "APPLE10",
+    "type": "percent",
+    "value": 10,
+    "minTotal": 10000,
+    "description": "Скидка 10% на заказ от 10 000 ₽",
+    "active": true
+  },
+  {
+    "id": 2,
+    "code": "WELCOME3000",
+    "type": "fixed",
+    "value": 3000,
+    "minTotal": 30000,
+    "description": "3 000 ₽ на первый заказ от 30 000 ₽",
+    "active": true
+  }
+]

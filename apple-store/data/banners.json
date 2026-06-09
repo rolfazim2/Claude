@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "title": "iPhone 16 Pro. Это сила.",
+    "subtitle": "Чип A18 Pro, камера 48 Мп с 5-кратным зумом и Apple Intelligence. Уже в наличии.",
+    "cta": "Купить iPhone",
+    "link": "/catalog?category=iphone",
+    "image": "/img/hero.svg",
+    "bg": "linear-gradient(115deg, #141418 25%, #38204e 65%, #6e3563)",
+    "light": true,
+    "active": true
+  },
+  {
+    "id": 2,
+    "title": "MacBook Pro на чипе M4",
+    "subtitle": "До 24 часов без подзарядки. Рассрочка 0-0-24 без переплат.",
+    "cta": "Выбрать Mac",
+    "link": "/catalog?category=mac",
+    "image": "/img/macbook.svg",
+    "bg": "linear-gradient(115deg, #0e1626 25%, #16304e 70%, #1e5a8a)",
+    "light": true,
+    "active": true
+  },
+  {
+    "id": 3,
+    "title": "Trade-in: меняем старое на новое",
+    "subtitle": "Сдайте прежний iPhone и получите скидку до 50 000 ₽ на новый.",
+    "cta": "Узнать цену",
+    "link": "/catalog?sale=1",
+    "image": "/img/iphone.svg",
+    "bg": "linear-gradient(115deg, #f5f5f7 30%, #e8e8ed)",
+    "light": false,
+    "active": true
+  }
+]
