@@ -145,14 +145,22 @@ function parseBrand(text: string): string | null {
   return null;
 }
 
+/** Товарные слова-линейки: тег с ними — товар, даже без цифр и бренда («HomePod mini gray»). */
+const PRODUCT_WORDS = [
+  'iPad', 'MacBook', 'HomePod', 'AirPods', 'iMac', 'Mac', 'Watch', 'Galaxy', 'Buds',
+  'Pad', 'Note', 'Pixel', 'Kindle', 'PlayStation', 'Xbox', 'Momentum', 'Woburn',
+];
+
 /** Секционный заголовок без конфигурации: «iPad Air M4 ()», «Игры Релиз:», пустое. */
 function isSectionHeader(text: string): boolean {
   const t = text.trim();
   if (!t) return true;
   if (/\(\s*\)\s*$/.test(t)) return true; // оканчивается на «()»
   if (/(релиз|games|игры)\s*:?\s*$/iu.test(t)) return true;
-  // нет ни одной цифры и нет бренда — вероятно заголовок раздела
-  if (!/\d/.test(t) && !parseBrand(t)) return true;
+  // нет цифр, нет бренда и нет товарного слова — вероятно заголовок раздела
+  if (!/\d/.test(t) && !parseBrand(t) && !PRODUCT_WORDS.some((w) => new RegExp(`\\b${w}\\b`, 'iu').test(t))) {
+    return true;
+  }
   return false;
 }
 

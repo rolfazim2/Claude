@@ -19,13 +19,17 @@ export interface Config {
   imageSource: ImageSource; // откуда брать картинку при создании карточки
 }
 
-function req(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Не задана обязательная переменная окружения ${name}`);
-  return v;
-}
-
 export function loadConfig(): Config {
+  // Собираем ВСЕ отсутствующие обязательные переменные сразу — одна понятная ошибка
+  // вместо чехарды «исправил одну, упал на следующей».
+  const missing = ['OPT_SPB_LOGIN', 'OPT_SPB_PASSWORD'].filter((n) => !process.env[n]);
+  if (missing.length) {
+    throw new Error(
+      `Не заданы обязательные переменные окружения: ${missing.join(', ')}. ` +
+        'На GitHub Actions: Settings → Secrets and variables → Actions → вкладка Secrets → ' +
+        'Repository secrets (имена точно такими же, заглавными). Локально: файл .env.',
+    );
+  }
   const mode = (process.env.AGENT_MODE ?? 'full') as AgentMode;
   if (!['safe', 'full', 'dry-run'].includes(mode)) {
     throw new Error(`AGENT_MODE должен быть safe|full|dry-run, получено «${mode}»`);
@@ -36,9 +40,11 @@ export function loadConfig(): Config {
   }
   return {
     baseUrl: (process.env.OPT_SPB_BASE_URL ?? 'https://opt-spb.ru').replace(/\/+$/, ''),
-    login: req('OPT_SPB_LOGIN'),
-    password: req('OPT_SPB_PASSWORD'),
-    anthropicApiKey: req('ANTHROPIC_API_KEY'),
+    login: process.env.OPT_SPB_LOGIN!,
+    password: process.env.OPT_SPB_PASSWORD!,
+    // Ключ НЕобязателен: без него агент работает в детерминированном режиме
+    // (однозначное привязывает, спорное → review). С ключом — LLM-арбитраж и vision-картинки.
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
     model: process.env.AGENT_MODEL ?? 'claude-opus-4-8',
     mode,
     confidenceThreshold: Number(process.env.AGENT_CONFIDENCE_THRESHOLD ?? '0.95'),

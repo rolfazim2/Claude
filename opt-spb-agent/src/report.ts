@@ -11,6 +11,8 @@ export interface RunStats {
   queueStart: number;
   queueEnd: number;
   outcomes: TagOutcome[];
+  /** Расход LLM за прогон (отсутствует, если ключ не задан / вызовов не было). */
+  llm?: { calls: number; inputTokens: number; outputTokens: number; cacheReadTokens: number };
 }
 
 export function buildReport(s: RunStats): string {
@@ -32,6 +34,14 @@ export function buildReport(s: RunStats): string {
   lines.push(`- Создано карточек: **${created.length}**`);
   lines.push(`- На согласование (review): **${review.length}**`);
   lines.push(`- Пропущено (заголовки/не товары): ${skipped.length}`);
+  if (s.llm) {
+    lines.push(
+      `- LLM: ${s.llm.calls} вызов(ов), токены in/out ${s.llm.inputTokens}/${s.llm.outputTokens}` +
+        (s.llm.cacheReadTokens ? `, из кэша ${s.llm.cacheReadTokens}` : ''),
+    );
+  } else {
+    lines.push('- LLM: 0 вызовов (детерминированный режим)');
+  }
   lines.push('');
 
   if (bound.length || boundPending.length) {
