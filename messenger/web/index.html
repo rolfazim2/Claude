@@ -13,7 +13,7 @@
     <div class="auth-card">
       <div class="auth-logo">✈️</div>
       <h1>Gram</h1>
-      <p class="auth-subtitle">Быстрый и простой мессенджер</p>
+      <p class="auth-subtitle">Корпоративный мессенджер</p>
       <div class="auth-tabs">
         <button id="tab-login" class="auth-tab active">Вход</button>
         <button id="tab-register" class="auth-tab">Регистрация</button>
@@ -37,14 +37,16 @@
         <button id="theme-btn" class="icon-btn" title="Тема">🌙</button>
       </div>
       <div id="menu-dropdown" class="menu-dropdown hidden">
-        <div class="menu-me">
+        <div class="menu-me" id="menu-me">
           <div id="menu-avatar" class="avatar"></div>
           <div>
             <div id="menu-name" class="menu-name"></div>
             <div id="menu-username" class="menu-username"></div>
           </div>
         </div>
+        <button id="profile-btn" class="menu-item">👤 Мой профиль</button>
         <button id="new-group-btn" class="menu-item">👥 Новая группа</button>
+        <button id="new-channel-btn" class="menu-item">📢 Новый канал</button>
         <button id="logout-btn" class="menu-item">🚪 Выйти</button>
       </div>
       <div id="chat-list" class="chat-list"></div>
@@ -57,33 +59,80 @@
       </div>
       <div id="chat-view" class="chat-view hidden">
         <header class="chat-header">
-          <div id="chat-avatar" class="avatar"></div>
-          <div class="chat-header-info">
-            <div id="chat-title" class="chat-title"></div>
-            <div id="chat-status" class="chat-status"></div>
+          <div id="chat-header-main" class="chat-header-main">
+            <div id="chat-avatar" class="avatar"></div>
+            <div class="chat-header-info">
+              <div id="chat-title" class="chat-title"></div>
+              <div id="chat-status" class="chat-status"></div>
+            </div>
+          </div>
+          <div class="chat-header-actions">
+            <button id="call-audio-btn" class="icon-btn hidden" title="Аудиозвонок">📞</button>
+            <button id="call-video-btn" class="icon-btn hidden" title="Видеозвонок">🎥</button>
+            <button id="info-btn" class="icon-btn" title="Информация">ⓘ</button>
           </div>
         </header>
+        <div id="pinned-bar" class="pinned-bar hidden">
+          <span class="pinned-label">📌 Закреплено</span>
+          <span id="pinned-text" class="pinned-text"></span>
+          <button id="unpin-btn" class="icon-btn" title="Открепить">✕</button>
+        </div>
         <div id="messages" class="messages"></div>
         <div id="typing-bar" class="typing-bar"></div>
         <footer class="composer">
+          <div id="reply-banner" class="edit-banner hidden">
+            <span id="reply-banner-text">↩️ Ответ</span>
+            <button id="reply-cancel" class="icon-btn">✕</button>
+          </div>
           <div id="edit-banner" class="edit-banner hidden">
             <span>✏️ Редактирование</span>
             <button id="edit-cancel" class="icon-btn">✕</button>
           </div>
-          <div class="composer-row">
+          <div id="composer-row" class="composer-row">
+            <button id="attach-btn" class="icon-btn composer-icon" title="Прикрепить файл">📎</button>
+            <input id="file-input" type="file" class="hidden" multiple>
             <textarea id="message-input" class="message-input" placeholder="Сообщение" rows="1"></textarea>
+            <button id="voice-btn" class="icon-btn composer-icon" title="Голосовое сообщение">🎤</button>
             <button id="send-btn" class="send-btn" title="Отправить">➤</button>
           </div>
+          <div id="readonly-bar" class="readonly-bar hidden">Публиковать в этом канале могут только администраторы</div>
         </footer>
       </div>
+
+      <!-- Панель информации о чате -->
+      <aside id="info-panel" class="info-panel hidden">
+        <div class="info-header">
+          <span>Информация</span>
+          <button id="info-close" class="icon-btn">✕</button>
+        </div>
+        <div class="info-body">
+          <div id="info-avatar-wrap" class="info-avatar-wrap"></div>
+          <div id="info-title" class="info-title"></div>
+          <div id="info-subtitle" class="info-subtitle"></div>
+          <div id="info-description" class="info-description"></div>
+          <div class="info-actions">
+            <label class="info-row">
+              <input type="checkbox" id="mute-toggle"> 🔇 Без уведомлений
+            </label>
+            <button id="edit-chat-btn" class="menu-item hidden">✏️ Изменить название и описание</button>
+            <button id="chat-avatar-btn" class="menu-item hidden">🖼 Сменить аватар чата</button>
+            <input id="chat-avatar-input" type="file" accept="image/*" class="hidden">
+            <button id="add-member-btn" class="menu-item hidden">➕ Добавить участника</button>
+            <button id="leave-chat-btn" class="menu-item danger hidden">🚪 Покинуть чат</button>
+          </div>
+          <div id="info-members-title" class="list-section"></div>
+          <div id="info-members" class="info-members"></div>
+        </div>
+      </aside>
     </main>
   </div>
 
-  <!-- Модал создания группы -->
+  <!-- Модал создания группы/канала -->
   <div id="group-modal" class="modal-backdrop hidden">
     <div class="modal">
-      <h2>Новая группа</h2>
-      <input id="group-title" class="auth-input" type="text" placeholder="Название группы" maxlength="64">
+      <h2 id="group-modal-title">Новая группа</h2>
+      <input id="group-title" class="auth-input" type="text" placeholder="Название" maxlength="64">
+      <input id="group-description" class="auth-input" type="text" placeholder="Описание (необязательно)" maxlength="512">
       <input id="group-search" class="auth-input" type="text" placeholder="Поиск участников">
       <div id="group-selected" class="group-selected"></div>
       <div id="group-results" class="group-results"></div>
@@ -92,6 +141,80 @@
         <button id="group-create" class="auth-submit">Создать</button>
       </div>
     </div>
+  </div>
+
+  <!-- Модал пересылки -->
+  <div id="forward-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Переслать сообщение</h2>
+      <div id="forward-list" class="group-results forward-list"></div>
+      <div class="modal-actions">
+        <button id="forward-cancel" class="btn-secondary">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал профиля -->
+  <div id="profile-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Мой профиль</h2>
+      <div class="profile-avatar-row">
+        <div id="profile-avatar"></div>
+        <button id="profile-avatar-btn" class="btn-secondary">Сменить фото</button>
+        <input id="profile-avatar-input" type="file" accept="image/*" class="hidden">
+      </div>
+      <input id="profile-name" class="auth-input" type="text" placeholder="Имя" maxlength="64">
+      <input id="profile-bio" class="auth-input" type="text" placeholder="О себе" maxlength="256">
+      <div class="modal-actions">
+        <button id="profile-cancel" class="btn-secondary">Отмена</button>
+        <button id="profile-save" class="auth-submit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал редактирования чата -->
+  <div id="edit-chat-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Редактировать чат</h2>
+      <input id="edit-chat-title" class="auth-input" type="text" placeholder="Название" maxlength="64">
+      <input id="edit-chat-description" class="auth-input" type="text" placeholder="Описание" maxlength="512">
+      <div class="modal-actions">
+        <button id="edit-chat-cancel" class="btn-secondary">Отмена</button>
+        <button id="edit-chat-save" class="auth-submit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал добавления участников -->
+  <div id="add-member-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Добавить участников</h2>
+      <input id="add-member-search" class="auth-input" type="text" placeholder="Поиск пользователей">
+      <div id="add-member-results" class="group-results"></div>
+      <div class="modal-actions">
+        <button id="add-member-cancel" class="btn-secondary">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Звонок -->
+  <div id="call-modal" class="modal-backdrop hidden">
+    <div class="call-window">
+      <div id="call-status" class="call-status">Звонок…</div>
+      <div class="call-videos">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted></video>
+      </div>
+      <div class="call-controls">
+        <button id="call-accept" class="call-btn accept hidden" title="Ответить">📞</button>
+        <button id="call-hangup" class="call-btn hangup" title="Завершить">📵</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Просмотр изображения -->
+  <div id="lightbox" class="modal-backdrop hidden">
+    <img id="lightbox-img" class="lightbox-img" alt="">
   </div>
 
   <script src="/app.js"></script>

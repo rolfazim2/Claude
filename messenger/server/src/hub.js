@@ -1,7 +1,7 @@
 'use strict';
 
 // Реестр WebSocket-подключений: рассылка событий участникам чатов,
-// статусы «в сети» и индикатор набора текста.
+// статусы «в сети», индикатор набора и сигналинг звонков (WebRTC).
 
 const { WebSocketServer } = require('ws');
 const auth = require('./auth');
@@ -39,7 +39,15 @@ function broadcastPresence(userId, online) {
   }
 }
 
+// Пользователи делят хотя бы один чат? (для звонков)
+function sharesChat(a, b) {
+  return !!chats.findDirect(a, b) ||
+    chats.listForUser(a).some(({ id }) => chats.isMember(id, b));
+}
+
 function handleClientEvent(userId, raw) {
+  // ленивый импорт: format <-> hub взаимозависимы
+  const { publicMessage } = require('./format');
   let msg;
   try {
     msg = JSON.parse(raw);
@@ -56,8 +64,17 @@ function handleClientEvent(userId, raw) {
 
   if (msg.type === 'message') {
     const text = typeof msg.text === 'string' ? msg.text.trim() : '';
-    if (!text || text.length > 4096 || !chats.isMember(chatId, userId)) return;
-    const message = messages.create(chatId, userId, text);
+    if (!text || text.length > 4096) return;
+    const chat = chats.byId(chatId);
+    const membership = chats.member(chatId, userId);
+    if (!chat || !membership) return;
+    if (chat.type === 'channel' && !['owner', 'admin'].includes(membership.role)) return;
+    let replyTo = null;
+    if (msg.replyTo) {
+      const r = messages.byId(Number(msg.replyTo));
+      if (r && Number(r.chat_id) === chatId) replyTo = Number(msg.replyTo);
+    }
+    const message = publicMessage(messages.create(chatId, userId, { text, replyTo }));
     broadcastToChat(chatId, { type: 'message', message });
     // Подтверждение отправителю: связываем с временным id на клиенте
     if (msg.tempId) sendTo(userId, { type: 'ack', tempId: msg.tempId, message });
@@ -69,6 +86,22 @@ function handleClientEvent(userId, raw) {
     if (!messageId || !chats.isMember(chatId, userId)) return;
     chats.setLastRead(chatId, userId, messageId);
     broadcastToChat(chatId, { type: 'read', chatId, userId, messageId }, userId);
+    return;
+  }
+
+  // Сигналинг звонков: сервер только пересылает offer/answer/ice/hangup
+  if (msg.type === 'call') {
+    const to = Number(msg.to);
+    if (!to || !sharesChat(userId, to)) return;
+    const me = users.byId(userId);
+    sendTo(to, {
+      type: 'call',
+      action: String(msg.action || ''),
+      from: userId,
+      fromName: me ? me.name : '',
+      video: !!msg.video,
+      payload: msg.payload ?? null,
+    });
   }
 }
 

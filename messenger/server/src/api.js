@@ -4,7 +4,8 @@
 
 const auth = require('./auth');
 const hub = require('./hub');
-const { users, chats, messages } = require('./db');
+const { users, files, chats, messages, reactions } = require('./db');
+const { publicUser, publicMessage, chatView } = require('./format');
 
 class ApiError extends Error {
   constructor(status, message) {
@@ -14,50 +15,25 @@ class ApiError extends Error {
 }
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,32}$/;
+const MSG_KINDS = ['text', 'image', 'video', 'voice', 'file'];
 
-function publicUser(u) {
-  return {
-    id: u.id,
-    username: u.username,
-    name: u.name,
-    lastSeen: Number(u.last_seen || 0),
-    online: hub.isOnline(Number(u.id)),
-  };
+// Право публиковать: в каналах пишут только владелец и админы
+function canPost(chat, membership) {
+  if (chat.type !== 'channel') return true;
+  return membership && (membership.role === 'owner' || membership.role === 'admin');
 }
 
-function publicMessage(m) {
-  return {
-    id: Number(m.id),
-    chatId: Number(m.chat_id),
-    senderId: Number(m.sender_id),
-    senderName: m.sender_name,
-    senderUsername: m.sender_username,
-    text: m.deleted ? '' : m.text,
-    createdAt: Number(m.created_at),
-    editedAt: m.edited_at ? Number(m.edited_at) : null,
-    deleted: !!m.deleted,
-  };
+function isAdmin(membership) {
+  return membership && (membership.role === 'owner' || membership.role === 'admin');
 }
 
-function chatView(chat, forUserId) {
-  const members = chats.members(chat.id).map(publicUser);
-  let title = chat.title;
-  let peer = null;
-  if (chat.type === 'direct') {
-    peer = members.find((m) => m.id !== forUserId) || members[0];
-    title = peer ? peer.name : 'Удалённый аккаунт';
+function pushChatUpdate(chatId, exceptUserId = null) {
+  const chat = chats.byId(chatId);
+  for (const uid of chats.memberIds(chatId)) {
+    if (uid !== exceptUserId) {
+      hub.sendTo(uid, { type: 'chat_updated', chat: chatView(chat, uid) });
+    }
   }
-  const last = messages.last(chat.id);
-  return {
-    id: Number(chat.id),
-    type: chat.type,
-    title,
-    peer,
-    members,
-    unread: Number(chat.unread || 0),
-    lastMessage: last ? publicMessage(last) : null,
-    readByOthersUpTo: chats.readByOthersUpTo(chat.id, forUserId),
-  };
 }
 
 const routes = [];
@@ -81,6 +57,14 @@ function requireAuth(req) {
   const user = users.byId(payload.uid);
   if (!user) throw new ApiError(401, 'Пользователь не найден');
   return Number(user.id);
+}
+
+function requireMembership(chatId, uid) {
+  const chat = chats.byId(chatId);
+  if (!chat) throw new ApiError(404, 'Чат не найден');
+  const membership = chats.member(chatId, uid);
+  if (!membership) throw new ApiError(403, 'Нет доступа к чату');
+  return { chat, membership };
 }
 
 // ---- Аккаунт ----
@@ -118,11 +102,40 @@ route('GET', '/api/me', (req) => {
   return { user: publicUser(users.byId(uid)) };
 });
 
+route('PUT', '/api/me', (req) => {
+  const uid = requireAuth(req);
+  const current = users.byId(uid);
+  const { name, bio, avatarFileId } = req.body || {};
+  const newName = String(name ?? current.name).trim();
+  if (!newName || newName.length > 64) throw new ApiError(400, 'Имя: 1–64 символа');
+  const newBio = String(bio ?? current.bio ?? '').slice(0, 256);
+  let avatar = current.avatar_file;
+  if (avatarFileId !== undefined) {
+    if (avatarFileId === null) avatar = null;
+    else {
+      const f = files.byId(Number(avatarFileId));
+      if (!f) throw new ApiError(400, 'Файл аватара не найден');
+      avatar = Number(avatarFileId);
+    }
+  }
+  users.update(uid, { name: newName, bio: newBio, avatarFile: avatar });
+  return { user: publicUser(users.byId(uid)) };
+});
+
 route('GET', '/api/users', (req) => {
   const uid = requireAuth(req);
   const q = String(req.query.q || '').trim();
   if (q.length < 2) return { users: [] };
   return { users: users.search(q, uid).map(publicUser) };
+});
+
+// ---- Поиск по сообщениям ----
+
+route('GET', '/api/search', (req) => {
+  const uid = requireAuth(req);
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return { messages: [] };
+  return { messages: messages.search(uid, q).map(publicMessage) };
 });
 
 // ---- Чаты ----
@@ -141,7 +154,7 @@ route('GET', '/api/chats', (req) => {
 
 route('POST', '/api/chats', (req) => {
   const uid = requireAuth(req);
-  const { type, memberIds, title } = req.body || {};
+  const { type, memberIds, title, description } = req.body || {};
   const ids = [...new Set((memberIds || []).map(Number).filter((n) => n > 0 && n !== uid))];
   for (const id of ids) {
     if (!users.byId(id)) throw new ApiError(400, `Пользователь ${id} не найден`);
@@ -151,23 +164,28 @@ route('POST', '/api/chats', (req) => {
     if (ids.length !== 1) throw new ApiError(400, 'Личный чат — ровно один собеседник');
     const existing = chats.findDirect(uid, ids[0]);
     if (existing) {
-      const chat = chats.byId(existing.id);
-      return { chat: chatView(chat, uid), existing: true };
+      return { chat: chatView(chats.byId(existing.id), uid), existing: true };
     }
     const chatId = chats.create('direct', null, uid);
     chats.addMember(chatId, uid);
     chats.addMember(chatId, ids[0]);
-    const view = chatView(chats.byId(chatId), uid);
     hub.sendTo(ids[0], { type: 'chat', chat: chatView(chats.byId(chatId), ids[0]) });
-    return { chat: view };
+    return { chat: chatView(chats.byId(chatId), uid) };
   }
 
-  if (type === 'group') {
+  if (type === 'group' || type === 'channel') {
     const t = String(title || '').trim();
-    if (!t || t.length > 64) throw new ApiError(400, 'Укажите название группы (до 64 символов)');
-    if (ids.length < 1) throw new ApiError(400, 'Добавьте хотя бы одного участника');
-    const chatId = chats.create('group', t, uid);
-    chats.addMember(chatId, uid);
+    if (!t || t.length > 64) throw new ApiError(400, 'Укажите название (до 64 символов)');
+    if (type === 'group' && ids.length < 1) {
+      throw new ApiError(400, 'Добавьте хотя бы одного участника');
+    }
+    const chatId = chats.create(type, t, uid);
+    if (description) {
+      chats.update(chatId, {
+        title: t, description: String(description).slice(0, 512), avatarFile: null,
+      });
+    }
+    chats.addMember(chatId, uid, 'owner');
     for (const id of ids) chats.addMember(chatId, id);
     for (const id of ids) {
       hub.sendTo(id, { type: 'chat', chat: chatView(chats.byId(chatId), id) });
@@ -178,38 +196,201 @@ route('POST', '/api/chats', (req) => {
   throw new ApiError(400, 'Неизвестный тип чата');
 });
 
+route('PUT', '/api/chats/:id', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  const { chat, membership } = requireMembership(chatId, uid);
+  if (chat.type === 'direct') throw new ApiError(400, 'Личный чат нельзя редактировать');
+  if (!isAdmin(membership)) throw new ApiError(403, 'Только администратор может менять чат');
+  const { title, description, avatarFileId } = req.body || {};
+  const newTitle = String(title ?? chat.title).trim();
+  if (!newTitle || newTitle.length > 64) throw new ApiError(400, 'Название: 1–64 символа');
+  let avatar = chat.avatar_file;
+  if (avatarFileId !== undefined) {
+    avatar = avatarFileId === null ? null : Number(avatarFileId);
+    if (avatar && !files.byId(avatar)) throw new ApiError(400, 'Файл не найден');
+  }
+  chats.update(chatId, {
+    title: newTitle,
+    description: String(description ?? chat.description ?? '').slice(0, 512),
+    avatarFile: avatar,
+  });
+  pushChatUpdate(chatId);
+  return { chat: chatView(chats.byId(chatId), uid) };
+});
+
+// ---- Участники ----
+
+route('POST', '/api/chats/:id/members', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  const { chat } = requireMembership(chatId, uid);
+  if (chat.type === 'direct') throw new ApiError(400, 'В личный чат нельзя добавлять участников');
+  const ids = [...new Set(((req.body || {}).userIds || []).map(Number))];
+  for (const id of ids) {
+    if (!users.byId(id)) throw new ApiError(400, `Пользователь ${id} не найден`);
+  }
+  for (const id of ids) {
+    chats.addMember(chatId, id);
+    hub.sendTo(id, { type: 'chat', chat: chatView(chats.byId(chatId), id) });
+  }
+  pushChatUpdate(chatId);
+  return { chat: chatView(chats.byId(chatId), uid) };
+});
+
+route('DELETE', '/api/chats/:id/members/:userId', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  const targetId = Number(params.userId);
+  const { chat, membership } = requireMembership(chatId, uid);
+  if (chat.type === 'direct') throw new ApiError(400, 'Из личного чата нельзя удалять');
+  if (targetId !== uid && !isAdmin(membership)) {
+    throw new ApiError(403, 'Удалять участников может только администратор');
+  }
+  const target = chats.member(chatId, targetId);
+  if (!target) throw new ApiError(404, 'Участник не найден');
+  if (target.role === 'owner') throw new ApiError(403, 'Владельца нельзя удалить');
+  chats.removeMember(chatId, targetId);
+  hub.sendTo(targetId, { type: 'chat_removed', chatId });
+  pushChatUpdate(chatId);
+  return { ok: true };
+});
+
+route('POST', '/api/chats/:id/admins', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  const { membership } = requireMembership(chatId, uid);
+  if (membership.role !== 'owner') throw new ApiError(403, 'Назначать админов может только владелец');
+  const targetId = Number((req.body || {}).userId);
+  const makeAdmin = !!(req.body || {}).admin;
+  const target = chats.member(chatId, targetId);
+  if (!target) throw new ApiError(404, 'Участник не найден');
+  if (target.role === 'owner') throw new ApiError(400, 'Владелец уже имеет все права');
+  chats.setRole(chatId, targetId, makeAdmin ? 'admin' : 'member');
+  pushChatUpdate(chatId);
+  return { ok: true };
+});
+
+route('POST', '/api/chats/:id/mute', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  requireMembership(chatId, uid);
+  const muted = !!(req.body || {}).muted;
+  chats.setMuted(chatId, uid, muted);
+  return { ok: true, muted };
+});
+
+// ---- Закреплённые сообщения ----
+
+route('POST', '/api/chats/:id/pin', (req, params) => {
+  const uid = requireAuth(req);
+  const chatId = Number(params.id);
+  const { chat, membership } = requireMembership(chatId, uid);
+  if (chat.type !== 'direct' && !isAdmin(membership)) {
+    throw new ApiError(403, 'Закреплять может только администратор');
+  }
+  const messageId = (req.body || {}).messageId;
+  if (messageId !== null) {
+    const m = messages.byId(Number(messageId));
+    if (!m || Number(m.chat_id) !== chatId || m.deleted) {
+      throw new ApiError(404, 'Сообщение не найдено');
+    }
+  }
+  chats.setPinned(chatId, messageId === null ? null : Number(messageId));
+  pushChatUpdate(chatId);
+  return { ok: true };
+});
+
+// ---- Сообщения ----
+
 route('GET', '/api/chats/:id/messages', (req, params) => {
   const uid = requireAuth(req);
   const chatId = Number(params.id);
-  if (!chats.isMember(chatId, uid)) throw new ApiError(403, 'Нет доступа к чату');
+  requireMembership(chatId, uid);
   const before = Number(req.query.before) || Number.MAX_SAFE_INTEGER;
   const limit = Math.min(Number(req.query.limit) || 50, 100);
   return { messages: messages.list(chatId, before, limit).map(publicMessage) };
 });
 
+function validateNewMessage(body, chat, membership, uid) {
+  if (!canPost(chat, membership)) {
+    throw new ApiError(403, 'В этом канале публикуют только администраторы');
+  }
+  const kind = MSG_KINDS.includes(body.kind) ? body.kind : 'text';
+  const text = String(body.text || '').trim();
+  let fileId = null;
+  if (kind !== 'text') {
+    const f = files.byId(Number(body.fileId));
+    if (!f) throw new ApiError(400, 'Файл не найден');
+    fileId = Number(body.fileId);
+  } else if (!text) {
+    throw new ApiError(400, 'Пустое сообщение');
+  }
+  if (text.length > 4096) throw new ApiError(400, 'Текст сообщения: до 4096 символов');
+  let replyTo = null;
+  if (body.replyTo) {
+    const r = messages.byId(Number(body.replyTo));
+    if (r && Number(r.chat_id) === Number(chat.id)) replyTo = Number(body.replyTo);
+  }
+  const forwardFrom = body.forwardFrom ? String(body.forwardFrom).slice(0, 64) : null;
+  return { kind, text, fileId, replyTo, forwardFrom };
+}
+
 route('POST', '/api/chats/:id/messages', (req, params) => {
   const uid = requireAuth(req);
   const chatId = Number(params.id);
-  if (!chats.isMember(chatId, uid)) throw new ApiError(403, 'Нет доступа к чату');
-  const text = String((req.body || {}).text || '').trim();
-  if (!text || text.length > 4096) throw new ApiError(400, 'Текст сообщения: 1–4096 символов');
-  const message = messages.create(chatId, uid, text);
-  hub.broadcastToChat(chatId, { type: 'message', message: publicMessage(message) }, uid);
-  return { message: publicMessage(message) };
+  const { chat, membership } = requireMembership(chatId, uid);
+  const data = validateNewMessage(req.body || {}, chat, membership, uid);
+  const message = publicMessage(messages.create(chatId, uid, data));
+  hub.broadcastToChat(chatId, { type: 'message', message }, uid);
+  return { message };
+});
+
+// Пересылка сообщения в другой чат
+route('POST', '/api/messages/:id/forward', (req, params) => {
+  const uid = requireAuth(req);
+  const m = messages.byId(Number(params.id));
+  if (!m || m.deleted) throw new ApiError(404, 'Сообщение не найдено');
+  requireMembership(Number(m.chat_id), uid);
+  const targetChatId = Number((req.body || {}).chatId);
+  const { chat, membership } = requireMembership(targetChatId, uid);
+  if (!canPost(chat, membership)) {
+    throw new ApiError(403, 'В этом канале публикуют только администраторы');
+  }
+  const message = publicMessage(messages.create(targetChatId, uid, {
+    kind: m.kind,
+    text: m.text,
+    fileId: m.file_id ? Number(m.file_id) : null,
+    forwardFrom: m.sender_name,
+  }));
+  hub.broadcastToChat(targetChatId, { type: 'message', message }, uid);
+  return { message };
+});
+
+// Реакции: повторная отправка той же реакции снимает её
+route('POST', '/api/messages/:id/reactions', (req, params) => {
+  const uid = requireAuth(req);
+  const m = messages.byId(Number(params.id));
+  if (!m || m.deleted) throw new ApiError(404, 'Сообщение не найдено');
+  requireMembership(Number(m.chat_id), uid);
+  const emoji = String((req.body || {}).emoji || '').slice(0, 8);
+  if (!emoji) throw new ApiError(400, 'Не указана реакция');
+  reactions.toggle(Number(m.id), uid, emoji);
+  const updated = publicMessage(messages.byId(m.id));
+  hub.broadcastToChat(Number(m.chat_id), { type: 'message_edited', message: updated });
+  return { message: updated };
 });
 
 route('POST', '/api/chats/:id/read', (req, params) => {
   const uid = requireAuth(req);
   const chatId = Number(params.id);
-  if (!chats.isMember(chatId, uid)) throw new ApiError(403, 'Нет доступа к чату');
+  requireMembership(chatId, uid);
   const messageId = Number((req.body || {}).messageId);
   if (!messageId) throw new ApiError(400, 'Не указан messageId');
   chats.setLastRead(chatId, uid, messageId);
   hub.broadcastToChat(chatId, { type: 'read', chatId, userId: uid, messageId }, uid);
   return { ok: true };
 });
-
-// ---- Сообщения ----
 
 route('PUT', '/api/messages/:id', (req, params) => {
   const uid = requireAuth(req);
@@ -228,8 +409,16 @@ route('DELETE', '/api/messages/:id', (req, params) => {
   const uid = requireAuth(req);
   const m = messages.byId(Number(params.id));
   if (!m || m.deleted) throw new ApiError(404, 'Сообщение не найдено');
-  if (Number(m.sender_id) !== uid) throw new ApiError(403, 'Можно удалять только свои сообщения');
+  const { chat, membership } = requireMembership(Number(m.chat_id), uid);
+  const own = Number(m.sender_id) === uid;
+  if (!own && !(chat.type !== 'direct' && isAdmin(membership))) {
+    throw new ApiError(403, 'Можно удалять только свои сообщения');
+  }
   messages.remove(m.id);
+  if (Number(chat.pinned_message_id || 0) === Number(m.id)) {
+    chats.setPinned(Number(m.chat_id), null);
+    pushChatUpdate(Number(m.chat_id));
+  }
   hub.broadcastToChat(Number(m.chat_id), {
     type: 'message_deleted', chatId: Number(m.chat_id), messageId: Number(m.id),
   });

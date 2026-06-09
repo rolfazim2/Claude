@@ -5,6 +5,12 @@ const path = require('node:path');
 const fs = require('node:fs');
 const api = require('./api');
 const hub = require('./hub');
+const auth = require('./auth');
+const { users, files, DATA_DIR } = require('./db');
+
+const FILES_DIR = path.join(DATA_DIR, 'files');
+fs.mkdirSync(FILES_DIR, { recursive: true });
+const MAX_UPLOAD = 50 * 1024 * 1024; // 50 МБ
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -84,6 +90,81 @@ function serveStatic(req, res, pathname) {
   });
 }
 
+// Загрузка файла: тело запроса — бинарные данные, имя в заголовке X-File-Name
+function handleUpload(req, res) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const payload = auth.verify(token);
+  if (!payload || !users.byId(payload.uid)) {
+    json(res, 401, { error: 'Требуется авторизация' });
+    return;
+  }
+  const declared = Number(req.headers['content-length'] || 0);
+  if (declared > MAX_UPLOAD) {
+    json(res, 413, { error: 'Файл больше 50 МБ' });
+    return;
+  }
+  let name = 'file';
+  try {
+    name = decodeURIComponent(req.headers['x-file-name'] || 'file');
+  } catch { /* оставляем имя по умолчанию */ }
+  name = path.basename(name).slice(0, 128) || 'file';
+  const mime = req.headers['content-type'] || 'application/octet-stream';
+
+  const chunks = [];
+  let size = 0;
+  req.on('data', (chunk) => {
+    size += chunk.length;
+    if (size > MAX_UPLOAD) {
+      json(res, 413, { error: 'Файл больше 50 МБ' });
+      req.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+  req.on('end', () => {
+    if (res.writableEnded) return;
+    if (!size) {
+      json(res, 400, { error: 'Пустой файл' });
+      return;
+    }
+    const buf = Buffer.concat(chunks);
+    const fileId = files.create(payload.uid, name, mime, size);
+    fs.writeFile(path.join(FILES_DIR, String(fileId)), buf, (err) => {
+      if (err) {
+        console.error(err);
+        json(res, 500, { error: 'Не удалось сохранить файл' });
+        return;
+      }
+      json(res, 200, {
+        file: { id: fileId, name, mime, size, url: `/files/${fileId}` },
+      });
+    });
+  });
+}
+
+function serveFile(req, res, fileId) {
+  const meta = files.byId(Number(fileId));
+  if (!meta) {
+    json(res, 404, { error: 'Файл не найден' });
+    return;
+  }
+  const filePath = path.join(FILES_DIR, String(meta.id));
+  const stream = fs.createReadStream(filePath);
+  stream.on('error', () => json(res, 404, { error: 'Файл не найден' }));
+  stream.on('open', () => {
+    const inline = /^(image|video|audio)\//.test(meta.mime);
+    res.writeHead(200, {
+      'Content-Type': meta.mime,
+      'Content-Length': Number(meta.size),
+      'Content-Disposition': (inline ? 'inline' : 'attachment') +
+        `; filename*=UTF-8''${encodeURIComponent(meta.name)}`,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    });
+    stream.pipe(res);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -95,6 +176,17 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/upload') {
+    handleUpload(req, res);
+    return;
+  }
+
+  const fileMatch = /^\/files\/(\d+)$/.exec(pathname);
+  if (req.method === 'GET' && fileMatch) {
+    serveFile(req, res, fileMatch[1]);
     return;
   }
 
