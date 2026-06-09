@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Товар — i:Store</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <div class="breadcrumbs" id="bc"><a href="/">Главная</a> / <a href="/catalog">Каталог</a></div>
+    <div id="product-root"></div>
+    <section>
+      <div class="section-title"><h2>С этим товаром покупают</h2></div>
+      <div class="grid" id="related"></div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    const id = +new URLSearchParams(location.search).get('id');
+
+    async function loadProduct() {
+      const res = await fetch('/api/products/' + id);
+      if (!res.ok) {
+        document.getElementById('product-root').innerHTML =
+          '<div class="empty">Товар не найден. <a href="/catalog" style="color:var(--red)">Вернуться в каталог</a></div>';
+        return;
+      }
+      const p = await res.json();
+      document.title = p.name + ' — i:Store';
+
+      const cats = await fetch('/api/categories').then(r => r.json());
+      const cat = cats.find(c => c.slug === p.category);
+      if (cat) {
+        document.getElementById('bc').insertAdjacentHTML('beforeend',
+          ` / <a href="/catalog?category=${cat.slug}">${cat.name}</a> / <span>${escapeHtml(p.name)}</span>`);
+      }
+
+      const inCart = Cart.has(p.id);
+      document.getElementById('product-root').innerHTML = `
+        <div class="product-layout">
+          <div class="product-gallery">
+            ${p.badge ? `<span class="${badgeClass(p.badge)}">${escapeHtml(p.badge)}</span>` : ''}
+            <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}">
+          </div>
+          <div class="product-info">
+            <h1>${escapeHtml(p.name)}</h1>
+            <div class="product-stock ${p.stock ? '' : 'out'}">${p.stock ? '✓ В наличии: ' + p.stock + ' шт.' : 'Нет в наличии'}</div>
+            ${p.colors.length ? `<div class="product-colors">${p.colors.map((c, i) =>
+              `<span class="color-dot ${i === 0 ? 'active' : ''}" style="background:${c}" title="Цвет"></span>`).join('')}</div>` : ''}
+            <div class="product-buy">
+              <div>
+                <div class="price">${fmt(p.price)}</div>
+                ${p.oldPrice ? `<span class="price-old">${fmt(p.oldPrice)}</span>` : ''}
+              </div>
+              <button class="btn ${inCart ? 'in-cart' : ''}" data-add="${p.id}" ${p.stock ? '' : 'disabled'}>
+                ${inCart ? 'В корзине ✓' : 'В корзину'}
+              </button>
+            </div>
+            <p class="product-desc">${escapeHtml(p.description)}</p>
+            ${Object.keys(p.specs).length ? `
+              <div class="specs">
+                <h3>Характеристики</h3>
+                <table>${Object.entries(p.specs).map(([k, v]) =>
+                  `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join('')}</table>
+              </div>` : ''}
+          </div>
+        </div>`;
+
+      // выбор цвета
+      document.querySelectorAll('.color-dot').forEach(dot => dot.addEventListener('click', () => {
+        document.querySelector('.color-dot.active')?.classList.remove('active');
+        dot.classList.add('active');
+      }));
+
+      // похожие товары из той же категории
+      const { items } = await fetch('/api/products?category=' + p.category).then(r => r.json());
+      document.getElementById('related').innerHTML =
+        items.filter(x => x.id !== p.id).slice(0, 4).map(productCard).join('');
+    }
+
+    loadProduct();
+  </script>
+</body>
+</html>

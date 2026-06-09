@@ -1,0 +1,297 @@
+/* Админ-панель i:Store — оформление в стиле OpenCart 3 */
+
+:root {
+  --oc-header: #1d2a35;
+  --oc-sidebar: #232f3a;
+  --oc-sidebar-hover: #1a232c;
+  --oc-blue: #1e91cf;
+  --oc-blue-dark: #1779ae;
+  --oc-teal: #23a1a1;
+  --oc-orange: #f0ad4e;
+  --oc-red: #d9534f;
+  --oc-green: #5cb85c;
+  --oc-bg: #eff1f4;
+  --oc-text: #344350;
+  --oc-border: #dde2e6;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  background: var(--oc-bg);
+  color: var(--oc-text);
+}
+
+a { text-decoration: none; color: var(--oc-blue); }
+button { font: inherit; cursor: pointer; }
+
+/* ---------------- login ---------------- */
+
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--oc-header);
+}
+.login-box {
+  width: 380px;
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
+}
+.login-box .panel-heading { text-align: center; }
+.login-box .panel-body { padding: 26px; }
+.login-logo {
+  text-align: center;
+  padding: 26px 0 4px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--oc-header);
+}
+.login-logo span { color: var(--oc-red); }
+.login-hint { text-align: center; color: #8a97a3; padding-bottom: 14px; }
+.login-error { color: var(--oc-red); margin-bottom: 12px; text-align: center; min-height: 16px; }
+
+/* ---------------- layout ---------------- */
+
+.admin-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 50px;
+  z-index: 50;
+  background: var(--oc-header);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  color: #fff;
+}
+.admin-header .brand { font-size: 18px; font-weight: 700; color: #fff; }
+.admin-header .brand span { color: #e8556d; }
+.admin-header .right { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+.admin-header a.hl { color: #9fb1c1; font-size: 13px; }
+.admin-header a.hl:hover { color: #fff; }
+
+.sidebar {
+  position: fixed;
+  top: 50px; left: 0; bottom: 0;
+  width: 220px;
+  background: var(--oc-sidebar);
+  padding-top: 10px;
+  overflow-y: auto;
+}
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  color: #9fb1c1;
+  font-size: 13.5px;
+  border-left: 3px solid transparent;
+}
+.sidebar a:hover { background: var(--oc-sidebar-hover); color: #fff; }
+.sidebar a.active {
+  background: var(--oc-sidebar-hover);
+  color: #fff;
+  border-left-color: var(--oc-blue);
+}
+.sidebar svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+.content {
+  margin: 50px 0 0 220px;
+  padding: 0 0 40px;
+  min-height: calc(100vh - 50px);
+}
+
+.page-header {
+  background: #fff;
+  border-bottom: 1px solid var(--oc-border);
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.page-header h1 { font-size: 21px; font-weight: 400; color: #313e4a; }
+.page-header .breadcrumb { font-size: 12px; color: #8a97a3; margin-top: 4px; }
+
+.inner { padding: 0 24px; }
+
+/* ---------------- dashboard tiles ---------------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.tile {
+  border-radius: 4px;
+  color: #fff;
+  padding: 16px 18px 12px;
+  position: relative;
+  overflow: hidden;
+}
+.tile .num { font-size: 28px; font-weight: 700; }
+.tile .label { font-size: 12px; opacity: .9; text-transform: uppercase; letter-spacing: .4px; }
+.tile .tile-icon { position: absolute; right: 14px; top: 14px; opacity: .35; }
+.tile .tile-icon svg { width: 42px; height: 42px; stroke: #fff; fill: none; stroke-width: 1.5; }
+.tile-blue { background: var(--oc-blue); }
+.tile-teal { background: var(--oc-teal); }
+.tile-orange { background: var(--oc-orange); }
+.tile-red { background: var(--oc-red); }
+.tile .foot {
+  margin: 12px -18px -12px;
+  padding: 7px 18px;
+  background: rgba(0, 0, 0, .12);
+  font-size: 11.5px;
+}
+.tile .foot a { color: #fff; }
+
+/* ---------------- panels ---------------- */
+
+.panel {
+  background: #fff;
+  border: 1px solid var(--oc-border);
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+.panel-heading {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--oc-border);
+  background: #f7f9fa;
+  font-weight: 600;
+  color: #313e4a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-body { padding: 16px; }
+
+/* ---------------- tables ---------------- */
+
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px 12px; border-bottom: 1px solid #eef1f3; text-align: left; vertical-align: middle; }
+th {
+  background: #f7f9fa;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  color: #67788a;
+}
+tr:hover td { background: #f9fbfc; }
+td img.thumb { width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--oc-border); border-radius: 4px; padding: 3px; background: #fff; }
+
+/* ---------------- buttons & badges ---------------- */
+
+.btn {
+  display: inline-block;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #fff;
+  background: var(--oc-blue);
+}
+.btn:hover { background: var(--oc-blue-dark); }
+.btn-success { background: var(--oc-green); }
+.btn-success:hover { background: #4cae4c; }
+.btn-danger { background: var(--oc-red); }
+.btn-danger:hover { background: #c9302c; }
+.btn-default { background: #fff; color: var(--oc-text); border-color: var(--oc-border); }
+.btn-default:hover { background: #f2f4f6; }
+.btn-sm { padding: 4px 9px; font-size: 12px; }
+
+.label {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+.label-new { background: var(--oc-blue); }
+.label-processing { background: var(--oc-orange); }
+.label-shipped { background: var(--oc-teal); }
+.label-completed { background: var(--oc-green); }
+.label-cancelled { background: var(--oc-red); }
+.label-enabled { background: var(--oc-green); }
+.label-disabled { background: #8a97a3; }
+
+/* ---------------- forms ---------------- */
+
+.form-row { display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: start; margin-bottom: 14px; }
+.form-row label { padding-top: 8px; font-weight: 600; text-align: right; color: #4d5d6c; }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #c6ccd2;
+  border-radius: 4px;
+  font: inherit;
+  outline: none;
+}
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--oc-blue); }
+.form-row textarea { min-height: 90px; resize: vertical; }
+.form-hint { font-size: 11.5px; color: #8a97a3; margin-top: 4px; }
+
+select.status-select { padding: 5px 8px; border: 1px solid #c6ccd2; border-radius: 4px; font-size: 12.5px; }
+
+/* ---------------- modal ---------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(20, 30, 40, .55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.modal {
+  width: 680px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.modal .panel-heading button { border: none; background: none; font-size: 20px; color: #8a97a3; }
+.modal .panel-body { max-height: 70vh; overflow-y: auto; }
+.modal-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--oc-border);
+  text-align: right;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.order-details td { font-size: 12.5px; }
+.muted { color: #8a97a3; }
+.text-right { text-align: right; }
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 200;
+  padding: 12px 20px;
+  border-radius: 4px;
+  background: #2d3742;
+  color: #fff;
+  opacity: 0;
+  transition: .25s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 900px) {
+  .sidebar { width: 60px; }
+  .sidebar a span { display: none; }
+  .content { margin-left: 60px; }
+  .tiles { grid-template-columns: 1fr 1fr; }
+}

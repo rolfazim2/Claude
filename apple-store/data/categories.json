@@ -1,0 +1,8 @@
+[
+  { "slug": "iphone", "name": "iPhone", "icon": "iphone" },
+  { "slug": "ipad", "name": "iPad", "icon": "ipad" },
+  { "slug": "mac", "name": "Mac", "icon": "mac" },
+  { "slug": "watch", "name": "Apple Watch", "icon": "watch" },
+  { "slug": "airpods", "name": "AirPods", "icon": "airpods" },
+  { "slug": "accessories", "name": "Аксессуары", "icon": "accessories" }
+]

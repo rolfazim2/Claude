@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Корзина — i:Store</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <h1 class="page-title">Корзина</h1>
+    <div id="cart-root"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    async function renderCart() {
+      const cartItems = Cart.read();
+      const root = document.getElementById('cart-root');
+
+      if (!cartItems.length) {
+        root.innerHTML = `<div class="empty">Корзина пуста.<br><br><a class="btn" href="/catalog">Перейти в каталог</a></div>`;
+        return;
+      }
+
+      const products = await Promise.all(cartItems.map(i =>
+        fetch('/api/products/' + i.id).then(r => r.ok ? r.json() : null)));
+
+      const rows = cartItems.map((item, idx) => ({ ...item, product: products[idx] })).filter(r => r.product);
+      const total = rows.reduce((s, r) => s + r.product.price * r.qty, 0);
+      const count = rows.reduce((s, r) => s + r.qty, 0);
+
+      root.innerHTML = `
+        <div class="cart-layout">
+          <div>
+            ${rows.map(r => `
+              <div class="cart-item">
+                <a href="/product?id=${r.id}"><img src="${escapeHtml(r.product.image)}" alt=""></a>
+                <div>
+                  <a class="cart-item-name" href="/product?id=${r.id}">${escapeHtml(r.product.name)}</a>
+                  <div style="font-size:13px;color:var(--grey)">${fmt(r.product.price)} / шт.</div>
+                </div>
+                <div class="qty">
+                  <button data-dec="${r.id}">−</button>
+                  <span>${r.qty}</span>
+                  <button data-inc="${r.id}">+</button>
+                </div>
+                <span class="price">${fmt(r.product.price * r.qty)}</span>
+                <button class="remove" data-remove="${r.id}" title="Удалить">×</button>
+              </div>`).join('')}
+          </div>
+          <aside class="summary">
+            <h3>Итого</h3>
+            <div class="summary-row"><span>Товары (${count})</span><span>${fmt(total)}</span></div>
+            <div class="summary-row"><span>Доставка</span><span>${total >= 5000 ? 'бесплатно' : fmt(490)}</span></div>
+            <div class="summary-total"><span>К оплате</span><span>${fmt(total + (total >= 5000 ? 0 : 490))}</span></div>
+            <a class="btn" href="/checkout">Оформить заказ</a>
+          </aside>
+        </div>`;
+
+      root.onclick = (e) => {
+        const inc = e.target.closest('[data-inc]');
+        const dec = e.target.closest('[data-dec]');
+        const rem = e.target.closest('[data-remove]');
+        if (inc) Cart.setQty(+inc.dataset.inc, Cart.read().find(i => i.id === +inc.dataset.inc).qty + 1);
+        if (dec) Cart.setQty(+dec.dataset.dec, Cart.read().find(i => i.id === +dec.dataset.dec).qty - 1);
+        if (rem) Cart.remove(+rem.dataset.remove);
+        if (inc || dec || rem) renderCart();
+      };
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+[
+  {
+    "id": 1,
+    "name": "iPhone 16 Pro Max 256 ГБ, титановый чёрный",
+    "category": "iphone",
+    "price": 129990,
+    "oldPrice": 139990,
+    "image": "/img/iphone-pro.svg",
+    "description": "Самый мощный iPhone с чипом A18 Pro, дисплеем Super Retina XDR 6,9″ и камерой 48 Мп с 5-кратным оптическим зумом.",
+    "specs": {
+      "Дисплей": "6,9″ Super Retina XDR",
+      "Чип": "A18 Pro",
+      "Память": "256 ГБ",
+      "Камера": "48 Мп + 48 Мп + 12 Мп",
+      "Аккумулятор": "До 33 ч видео"
+    },
+    "colors": [
+      "#3c3c3d",
+      "#f0e9e2",
+      "#a7a9ac",
+      "#5f4f3e"
+    ],
+    "stock": 12,
+    "featured": true,
+    "badge": "Хит",
+    "status": "enabled"
+  },
+  {
+    "id": 2,
+    "name": "iPhone 16 Pro 128 ГБ, титановый натуральный",
+    "category": "iphone",
+    "price": 105990,
+    "oldPrice": null,
+    "image": "/img/iphone-pro.svg",
+    "description": "iPhone 16 Pro с чипом A18 Pro, кнопкой управления камерой и дисплеем ProMotion 120 Гц.",
+    "specs": {
+      "Дисплей": "6,3″ Super Retina XDR",
+      "Чип": "A18 Pro",
+      "Память": "128 ГБ",
+      "Камера": "48 Мп + 48 Мп + 12 Мп"
+    },
+    "colors": [
+      "#a7a9ac",
+      "#3c3c3d",
+      "#f0e9e2"
+    ],
+    "stock": 8,
+    "featured": true,
+    "badge": "Новинка",
+    "status": "enabled"
+  },
+  {
+    "id": 3,
+    "name": "iPhone 16 128 ГБ, ультрамарин",
+    "category": "iphone",
+    "price": 84990,
+    "oldPrice": 89990,
+    "image": "/img/iphone.svg",
+    "description": "Яркий iPhone 16 с чипом A18, камерой 48 Мп и поддержкой Apple Intelligence.",
+    "specs": {
+      "Дисплей": "6,1″ Super Retina XDR",
+      "Чип": "A18",
+      "Память": "128 ГБ",
+      "Камера": "48 Мп + 12 Мп"
+    },
+    "colors": [
+      "#4861c5",
+      "#9aa7b5",
+      "#f4afcf",
+      "#b8d8c4",
+      "#1d1d1f"
+    ],
+    "stock": 20,
+    "featured": true,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 4,
+    "name": "iPhone 15 128 ГБ, чёрный",
+    "category": "iphone",
+    "price": 67990,
+    "oldPrice": 74990,
+    "image": "/img/iphone.svg",
+    "description": "iPhone 15 с Dynamic Island, камерой 48 Мп и разъёмом USB-C.",
+    "specs": {
+      "Дисплей": "6,1″ Super Retina XDR",
+      "Чип": "A16 Bionic",
+      "Память": "128 ГБ",
+      "Камера": "48 Мп + 12 Мп"
+    },
+    "colors": [
+      "#1d1d1f",
+      "#e3c8ca",
+      "#d5dde0",
+      "#ebe5d9"
+    ],
+    "stock": 15,
+    "featured": false,
+    "badge": "Скидка",
+    "status": "enabled"
+  },
+  {
+    "id": 5,
+    "name": "iPad Pro 11″ M4 256 ГБ Wi-Fi, серебристый",
+    "category": "ipad",
+    "price": 109990,
+    "oldPrice": null,
+    "image": "/img/ipad.svg",
+    "description": "Невероятно тонкий iPad Pro с чипом M4 и дисплеем Ultra Retina XDR на базе OLED.",
+    "specs": {
+      "Дисплей": "11″ Ultra Retina XDR",
+      "Чип": "Apple M4",
+      "Память": "256 ГБ",
+      "Связь": "Wi-Fi 6E"
+    },
+    "colors": [
+      "#e3e4e5",
+      "#2e2c2f"
+    ],
+    "stock": 6,
+    "featured": true,
+    "badge": "Новинка",
+    "status": "enabled"
+  },
+  {
+    "id": 6,
+    "name": "iPad Air 11″ M2 128 ГБ Wi-Fi, сиреневый",
+    "category": "ipad",
+    "price": 64990,
+    "oldPrice": 69990,
+    "image": "/img/ipad.svg",
+    "description": "Лёгкий и мощный iPad Air с чипом M2 — для работы, учёбы и творчества.",
+    "specs": {
+      "Дисплей": "11″ Liquid Retina",
+      "Чип": "Apple M2",
+      "Память": "128 ГБ",
+      "Связь": "Wi-Fi 6E"
+    },
+    "colors": [
+      "#b9b1d8",
+      "#c5d6e8",
+      "#ebd9c8",
+      "#5a5b5f"
+    ],
+    "stock": 10,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 7,
+    "name": "iPad 10.9″ 64 ГБ Wi-Fi, голубой",
+    "category": "ipad",
+    "price": 38990,
+    "oldPrice": 42990,
+    "image": "/img/ipad.svg",
+    "description": "Универсальный iPad с большим дисплеем Liquid Retina и чипом A14 Bionic.",
+    "specs": {
+      "Дисплей": "10,9″ Liquid Retina",
+      "Чип": "A14 Bionic",
+      "Память": "64 ГБ"
+    },
+    "colors": [
+      "#9bbcd8",
+      "#e8c8c8",
+      "#ebe34f",
+      "#d6d7d8"
+    ],
+    "stock": 18,
+    "featured": false,
+    "badge": "Скидка",
+    "status": "enabled"
+  },
+  {
+    "id": 8,
+    "name": "MacBook Pro 14″ M4 Pro 512 ГБ, чёрный космос",
+    "category": "mac",
+    "price": 219990,
+    "oldPrice": null,
+    "image": "/img/macbook.svg",
+    "description": "MacBook Pro с чипом M4 Pro: до 24 часов работы, дисплей Liquid Retina XDR и три порта Thunderbolt 5.",
+    "specs": {
+      "Дисплей": "14,2″ Liquid Retina XDR",
+      "Чип": "Apple M4 Pro",
+      "Память": "24 ГБ / 512 ГБ SSD",
+      "Время работы": "До 24 ч"
+    },
+    "colors": [
+      "#2e2c2f",
+      "#e3e4e5"
+    ],
+    "stock": 4,
+    "featured": true,
+    "badge": "Новинка",
+    "status": "enabled"
+  },
+  {
+    "id": 9,
+    "name": "MacBook Air 13″ M3 256 ГБ, полуночный",
+    "category": "mac",
+    "price": 114990,
+    "oldPrice": 124990,
+    "image": "/img/macbook.svg",
+    "description": "Самый популярный ноутбук Apple: тонкий, бесшумный, с чипом M3 и работой до 18 часов.",
+    "specs": {
+      "Дисплей": "13,6″ Liquid Retina",
+      "Чип": "Apple M3",
+      "Память": "8 ГБ / 256 ГБ SSD",
+      "Время работы": "До 18 ч"
+    },
+    "colors": [
+      "#2e3641",
+      "#e3e4e5",
+      "#f0e4d3",
+      "#7d7e80"
+    ],
+    "stock": 9,
+    "featured": true,
+    "badge": "Хит",
+    "status": "enabled"
+  },
+  {
+    "id": 10,
+    "name": "iMac 24″ M4 256 ГБ, синий",
+    "category": "mac",
+    "price": 149990,
+    "oldPrice": null,
+    "image": "/img/imac.svg",
+    "description": "Тонкий моноблок iMac с дисплеем Retina 4,5K, чипом M4 и камерой 12 Мп Center Stage.",
+    "specs": {
+      "Дисплей": "24″ Retina 4,5K",
+      "Чип": "Apple M4",
+      "Память": "16 ГБ / 256 ГБ SSD"
+    },
+    "colors": [
+      "#5083c2",
+      "#76b9a6",
+      "#e8889a",
+      "#d6d7d8"
+    ],
+    "stock": 5,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 11,
+    "name": "Mac mini M4 256 ГБ",
+    "category": "mac",
+    "price": 74990,
+    "oldPrice": 79990,
+    "image": "/img/macmini.svg",
+    "description": "Крошечный, но невероятно мощный Mac mini с чипом M4 в новом компактном корпусе.",
+    "specs": {
+      "Чип": "Apple M4",
+      "Память": "16 ГБ / 256 ГБ SSD",
+      "Порты": "Thunderbolt 4, HDMI, USB-C"
+    },
+    "colors": [
+      "#d6d7d8"
+    ],
+    "stock": 11,
+    "featured": false,
+    "badge": "Скидка",
+    "status": "enabled"
+  },
+  {
+    "id": 12,
+    "name": "Apple Watch Series 10 46 мм, алюминий цвета розового золота",
+    "category": "watch",
+    "price": 46990,
+    "oldPrice": null,
+    "image": "/img/watch.svg",
+    "description": "Самый тонкий Apple Watch с самым большим дисплеем и зарядкой до 80% за 30 минут.",
+    "specs": {
+      "Дисплей": "46 мм Retina LTPO3",
+      "Чип": "S10",
+      "Защита": "WR50, IP6X",
+      "Зарядка": "80% за 30 мин"
+    },
+    "colors": [
+      "#e8c8c0",
+      "#2e2c2f",
+      "#d6d7d8"
+    ],
+    "stock": 14,
+    "featured": true,
+    "badge": "Новинка",
+    "status": "enabled"
+  },
+  {
+    "id": 13,
+    "name": "Apple Watch Ultra 2 49 мм, титановый чёрный",
+    "category": "watch",
+    "price": 84990,
+    "oldPrice": 89990,
+    "image": "/img/watch-ultra.svg",
+    "description": "Самые прочные и функциональные часы Apple для спорта и приключений. До 36 часов работы.",
+    "specs": {
+      "Дисплей": "49 мм, 3000 нит",
+      "Корпус": "Титан",
+      "Защита": "WR100, EN13319",
+      "Время работы": "До 36 ч"
+    },
+    "colors": [
+      "#2e2c2f",
+      "#c8c0b8"
+    ],
+    "stock": 7,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 14,
+    "name": "Apple Watch SE 40 мм, алюминий цвета тёмная ночь",
+    "category": "watch",
+    "price": 27990,
+    "oldPrice": 31990,
+    "image": "/img/watch.svg",
+    "description": "Все главные функции Apple Watch по доступной цене: уведомления, тренировки, здоровье.",
+    "specs": {
+      "Дисплей": "40 мм Retina",
+      "Чип": "S8",
+      "Защита": "WR50"
+    },
+    "colors": [
+      "#2e3641",
+      "#e8e0d8",
+      "#d6d7d8"
+    ],
+    "stock": 16,
+    "featured": false,
+    "badge": "Скидка",
+    "status": "enabled"
+  },
+  {
+    "id": 15,
+    "name": "AirPods Pro 2 с футляром MagSafe (USB-C)",
+    "category": "airpods",
+    "price": 24990,
+    "oldPrice": 27990,
+    "image": "/img/airpods-pro.svg",
+    "description": "Активное шумоподавление нового уровня, адаптивное аудио и персонализированное пространственное аудио.",
+    "specs": {
+      "Чип": "H2",
+      "Шумоподавление": "Активное, 2× мощнее",
+      "Время работы": "До 6 ч (30 ч с футляром)",
+      "Зарядка": "USB-C, MagSafe"
+    },
+    "colors": [
+      "#ffffff"
+    ],
+    "stock": 25,
+    "featured": true,
+    "badge": "Хит",
+    "status": "enabled"
+  },
+  {
+    "id": 16,
+    "name": "AirPods 4 с активным шумоподавлением",
+    "category": "airpods",
+    "price": 17990,
+    "oldPrice": null,
+    "image": "/img/airpods.svg",
+    "description": "Полностью обновлённые AirPods с чипом H2 и активным шумоподавлением в открытой конструкции.",
+    "specs": {
+      "Чип": "H2",
+      "Время работы": "До 5 ч (30 ч с футляром)",
+      "Зарядка": "USB-C"
+    },
+    "colors": [
+      "#ffffff"
+    ],
+    "stock": 22,
+    "featured": false,
+    "badge": "Новинка",
+    "status": "enabled"
+  },
+  {
+    "id": 17,
+    "name": "AirPods Max, фиолетовый",
+    "category": "airpods",
+    "price": 54990,
+    "oldPrice": 59990,
+    "image": "/img/airpods-max.svg",
+    "description": "Полноразмерные наушники Apple с высококачественным звуком, шумоподавлением и до 20 часов работы.",
+    "specs": {
+      "Чип": "H1 ×2",
+      "Время работы": "До 20 ч",
+      "Зарядка": "USB-C"
+    },
+    "colors": [
+      "#b9b1d8",
+      "#2e3641",
+      "#e8e0d8",
+      "#5083c2"
+    ],
+    "stock": 5,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 18,
+    "name": "Чехол MagSafe для iPhone 16 Pro, прозрачный",
+    "category": "accessories",
+    "price": 4990,
+    "oldPrice": null,
+    "image": "/img/case.svg",
+    "description": "Оригинальный прозрачный чехол с поддержкой MagSafe — подчёркивает цвет вашего iPhone.",
+    "specs": {
+      "Совместимость": "iPhone 16 Pro",
+      "MagSafe": "Да"
+    },
+    "colors": [],
+    "stock": 40,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 19,
+    "name": "Адаптер питания USB-C 20 Вт",
+    "category": "accessories",
+    "price": 2490,
+    "oldPrice": 2990,
+    "image": "/img/charger.svg",
+    "description": "Компактный адаптер для быстрой зарядки iPhone, iPad и AirPods.",
+    "specs": {
+      "Мощность": "20 Вт",
+      "Разъём": "USB-C"
+    },
+    "colors": [],
+    "stock": 60,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  },
+  {
+    "id": 20,
+    "name": "Зарядное устройство MagSafe 25 Вт",
+    "category": "accessories",
+    "price": 5490,
+    "oldPrice": null,
+    "image": "/img/magsafe.svg",
+    "description": "Беспроводная магнитная зарядка до 25 Вт для iPhone и AirPods.",
+    "specs": {
+      "Мощность": "До 25 Вт",
+      "Кабель": "USB-C, 1 м"
+    },
+    "colors": [],
+    "stock": 30,
+    "featured": false,
+    "badge": "",
+    "status": "enabled"
+  }
+]
