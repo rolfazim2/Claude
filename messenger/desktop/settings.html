@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Адрес сервера</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0; padding: 24px; background: #f4f4f5;
+    }
+    label { font-size: 13px; color: #707579; display: block; margin-bottom: 6px; }
+    input {
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border: 1px solid #d6d6d8; border-radius: 8px; font-size: 14px; outline: none;
+    }
+    input:focus { border-color: #3390ec; }
+    .error { color: #e53935; font-size: 12px; min-height: 16px; margin-top: 6px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+    button {
+      border: none; background: #3390ec; color: #fff; border-radius: 8px;
+      padding: 9px 18px; font-size: 14px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <label for="url">Адрес сервера Gram</label>
+  <input id="url" type="text" placeholder="http://localhost:3000" spellcheck="false">
+  <div id="error" class="error"></div>
+  <div class="actions">
+    <button id="save">Сохранить</button>
+  </div>
+  <script>
+    (async () => {
+      const input = document.getElementById('url');
+      input.value = await window.gramDesktop.getServer();
+      input.focus();
+      const save = async () => {
+        const res = await window.gramDesktop.setServer(input.value.trim());
+        if (!res.ok) document.getElementById('error').textContent = res.error;
+      };
+      document.getElementById('save').addEventListener('click', save);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+    })();
+  </script>
+</body>
+</html>
