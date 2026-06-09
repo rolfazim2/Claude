@@ -26,6 +26,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow}@db:5432/${POSTGRES_DB:-taskflow}
       PORT: 3001
+      UPLOAD_DIR: /data/uploads
       NODE_ENV: production
       APP_SECRET: ${APP_SECRET:-}
       ALLOW_DEMO_LOGIN: ${ALLOW_DEMO_LOGIN:-true}
@@ -35,6 +36,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - uploads_data:/data/uploads
     ports:
       - "3001:3001"
 
@@ -65,3 +68,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:

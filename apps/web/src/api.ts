@@ -102,6 +102,7 @@ export const api = {
   patchPayment: (id: string, data: Record<string, unknown>) =>
     req<PaymentEvent>(`/payments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   notifications: () => req<AppNotification[]>('/notifications'),
+  readAllNotifications: () => req<{ ok: boolean }>('/notifications/read-all', { method: 'POST', body: '{}' }),
   readNotification: (id: string) =>
     req<{ ok: boolean }>(`/notifications/${id}/read`, { method: 'POST' }),
   reports: () =>
@@ -112,6 +113,38 @@ export const api = {
       overdueByUser: Record<string, number>;
     }>('/reports/summary'),
 };
+
+/** Загрузка файла-вложения (multipart). */
+export async function uploadFile(taskId: string, file: File, kind: 'attachment' | 'completion_proof'): Promise<Task> {
+  const fd = new FormData();
+  fd.append('kind', kind);
+  fd.append('file', file);
+  const token = getToken();
+  const res = await fetch(`${API_URL}/tasks/${taskId}/upload`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'X-User-Id': localStorage.getItem('userId') ?? '',
+    },
+    body: fd,
+  });
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error((msg as any).error ?? `Ошибка ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Ссылка на скачивание файла-вложения (value = "stored|original"). */
+export function fileUrl(value: string): string {
+  const stored = value.split('|')[0];
+  const base = API_URL.startsWith('http') ? API_URL : API_URL;
+  return `${base}/files/${stored}`;
+}
+
+export function fileName(value: string): string {
+  return value.split('|')[1] ?? value;
+}
 
 export function wsConnect(onEvent: () => void): () => void {
   let ws: WebSocket | null = null;

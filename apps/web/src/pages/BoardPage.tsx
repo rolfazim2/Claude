@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { LayoutGrid, List as ListIcon, Search, Repeat, Hash, ArrowUpDown, Send } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Search, Repeat, Hash, ArrowUpDown, Send, PieChart } from 'lucide-react';
 import {
   PRIORITY_META,
   STATUS_META,
@@ -12,6 +12,7 @@ import {
 import { useStore } from '../store';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { TaskRow } from '../components/TaskRow';
+import { ProjectOverview } from '../components/ProjectOverview';
 
 type SortKey = 'priority' | 'due' | 'assignee';
 
@@ -27,7 +28,7 @@ export function BoardPage() {
   const openProjectTgModal = useStore((s) => s.openProjectTgModal);
   const canManage = me?.role === 'super_admin' || me?.role === 'process_lead';
 
-  const [view, setView] = useState<'kanban' | 'list'>('kanban');
+  const [view, setView] = useState<'kanban' | 'list' | 'overview'>('kanban');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('priority');
   const [fAssignee, setFAssignee] = useState('');
@@ -110,6 +111,13 @@ export function BoardPage() {
             >
               <ListIcon size={15} />
             </button>
+            <button
+              onClick={() => setView('overview')}
+              className={`px-2 py-1.5 ${view === 'overview' ? 'bg-hover text-text' : 'text-muted'}`}
+              title="Обзор проекта"
+            >
+              <PieChart size={15} />
+            </button>
           </div>
         </div>
       </div>
@@ -148,6 +156,8 @@ export function BoardPage() {
       <div className="min-h-0 flex-1 overflow-auto">
         {view === 'kanban' ? (
           <KanbanBoard tasks={tasks} />
+        ) : view === 'overview' ? (
+          <ProjectOverview project={project} tasks={tasks} />
         ) : (
           <div>
             {tasks.map((t) => (

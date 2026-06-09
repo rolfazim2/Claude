@@ -1,5 +1,5 @@
-import { X, Sparkles, ShieldCheck, Repeat, CornerDownRight, Send, Square, CheckSquare } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { X, Sparkles, ShieldCheck, Repeat, CornerDownRight, Send, Square, CheckSquare, Paperclip, History } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   PRIORITY_META,
   RECURRENCE_META,
@@ -10,7 +10,23 @@ import {
   type TaskStatus,
 } from '@taskflow/shared';
 import { useStore } from '../store';
-import { api } from '../api';
+import { api, fileUrl, fileName } from '../api';
+
+const IMG_EXT = /\.(png|jpe?g|gif|webp)$/i;
+
+/** Подсветка @упоминаний в тексте комментария. */
+function renderMentions(body: string, names: string[]) {
+  if (!body.includes('@') || names.length === 0) return body;
+  const re = new RegExp(`@(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
+  const parts = body.split(re);
+  return parts.map((p, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="rounded bg-accent/15 px-0.5 text-accent">@{p}</span>
+    ) : (
+      p
+    ),
+  );
+}
 import { Avatar } from './ui/Avatar';
 import { PriorityIcon } from './ui/Badges';
 import { formatDue, formatRelative } from '../lib/format';
@@ -57,6 +73,33 @@ export function TaskDetail() {
   const [proof, setProof] = useState('');
   const [newSub, setNewSub] = useState('');
   const [genBusy, setGenBusy] = useState(false);
+  const [upBusy, setUpBusy] = useState(false);
+  const uploadTaskFile = useStore((s) => s.uploadTaskFile);
+  const proofFileRef = useRef<HTMLInputElement>(null);
+  const attachFileRef = useRef<HTMLInputElement>(null);
+
+  // @упоминания: query после последней «@» в поле комментария.
+  const mentionQuery = useMemo(() => {
+    const m = comment.match(/@([^@\s][^@]*)?$/);
+    return m ? (m[1] ?? '') : null;
+  }, [comment]);
+  const mentionOptions = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    return users.filter((u) => u.fullName.toLowerCase().includes(q)).slice(0, 5);
+  }, [mentionQuery, users]);
+
+  async function doUpload(file: File | undefined, kind: 'attachment' | 'completion_proof') {
+    if (!file || !task) return;
+    setUpBusy(true);
+    try {
+      await uploadTaskFile(task.id, file, kind);
+    } catch (e: any) {
+      alert(e.message ?? 'Не удалось загрузить файл');
+    } finally {
+      setUpBusy(false);
+    }
+  }
 
   useEffect(() => {
     setTitle(task?.title ?? '');
@@ -232,14 +275,63 @@ export function TaskDetail() {
                 Доказательство (текст / ссылка / скриншот) — без него нельзя закрыть.
               </div>
               {task.attachments.filter((a) => a.kind === 'completion_proof').map((a) => (
-                <div key={a.id} className="mb-1 rounded bg-elevated px-2 py-1 text-2xs text-muted">✓ {a.value}</div>
+                <div key={a.id} className="mb-1 rounded bg-elevated px-2 py-1 text-2xs text-muted">
+                  {a.format === 'file' ? (
+                    <a href={fileUrl(a.value)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                      ✓ 📎 {fileName(a.value)}
+                    </a>
+                  ) : (
+                    <>✓ {a.value}</>
+                  )}
+                  {a.format === 'file' && IMG_EXT.test(a.value.split('|')[0]) && (
+                    <img src={fileUrl(a.value)} alt="" className="mt-1 max-h-32 rounded border border-border" />
+                  )}
+                </div>
               ))}
               <div className="flex items-center gap-2">
                 <input value={proof} onChange={(e) => setProof(e.target.value)} placeholder="Текст или ссылка…" className="flex-1 rounded-md border border-border bg-surface px-2 py-1 text-[13px] outline-none focus:border-accent" />
                 <button className="btn-ghost border border-border" disabled={!proof.trim()} onClick={async () => { await addProof(task.id, proof.trim()); setProof(''); }}>Приложить</button>
+                <button className="btn-ghost border border-border" disabled={upBusy} onClick={() => proofFileRef.current?.click()} title="Загрузить файл/скриншот">
+                  <Paperclip size={14} /> Файл
+                </button>
+                <input ref={proofFileRef} type="file" className="hidden" onChange={(e) => { doUpload(e.target.files?.[0], 'completion_proof'); e.target.value = ''; }} />
               </div>
             </div>
           )}
+
+          {/* Вложения */}
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-2xs uppercase tracking-wide text-faint">
+                Вложения ({task.attachments.filter((a) => a.kind === 'attachment').length})
+              </span>
+              <button className="btn-ghost px-1.5 py-0.5 text-2xs disabled:opacity-50" disabled={upBusy} onClick={() => attachFileRef.current?.click()}>
+                <Paperclip size={12} /> {upBusy ? 'Загрузка…' : 'Добавить файл'}
+              </button>
+              <input ref={attachFileRef} type="file" className="hidden" onChange={(e) => { doUpload(e.target.files?.[0], 'attachment'); e.target.value = ''; }} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {task.attachments.filter((a) => a.kind === 'attachment').map((a) => (
+                <a
+                  key={a.id}
+                  href={a.format === 'file' ? fileUrl(a.value) : a.value}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-elevated px-2 py-1.5 text-2xs text-muted hover:border-accent hover:text-text"
+                >
+                  {a.format === 'file' && IMG_EXT.test(a.value.split('|')[0]) ? (
+                    <img src={fileUrl(a.value)} alt="" className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    <Paperclip size={12} />
+                  )}
+                  {a.format === 'file' ? fileName(a.value) : a.value}
+                </a>
+              ))}
+              {task.attachments.filter((a) => a.kind === 'attachment').length === 0 && (
+                <span className="text-2xs text-faint">Нет вложений</span>
+              )}
+            </div>
+          </div>
 
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">
@@ -302,26 +394,64 @@ export function TaskDetail() {
                         <span className="text-[13px] font-medium">{author?.fullName}</span>
                         <span className="text-2xs text-faint">{formatRelative(c.createdAt)}</span>
                       </div>
-                      <p className="text-[13px] text-muted">{c.body}</p>
+                      <p className="text-[13px] text-muted">{renderMentions(c.body, users.map((u) => u.fullName))}</p>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <form
-              className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!comment.trim()) return;
-                const body = comment.trim();
-                setComment('');
-                await addComment(task.id, body);
-              }}
-            >
-              <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Написать комментарий…" className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint" />
-              <button type="submit" className="btn-ghost px-1.5 py-1"><Send size={15} /></button>
-            </form>
+            <div className="relative">
+              {mentionQuery !== null && mentionOptions.length > 0 && (
+                <div className="absolute bottom-full left-0 z-10 mb-1 w-64 overflow-hidden rounded-lg border border-border bg-surface shadow-panel">
+                  {mentionOptions.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[13px] hover:bg-hover"
+                      onClick={() => setComment(comment.replace(/@([^@\s][^@]*)?$/, `@${u.fullName} `))}
+                    >
+                      <Avatar user={u} size={18} /> {u.fullName}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <form
+                className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!comment.trim()) return;
+                  const body = comment.trim();
+                  setComment('');
+                  await addComment(task.id, body);
+                }}
+              >
+                <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий… (@имя — упомянуть)" className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint" />
+                <button type="submit" className="btn-ghost px-1.5 py-1"><Send size={15} /></button>
+              </form>
+            </div>
           </div>
+
+          {/* История изменений */}
+          {task.activity.length > 0 && (
+            <div className="mt-4 border-t border-borderSoft pt-3">
+              <div className="mb-2 flex items-center gap-1.5 text-2xs uppercase tracking-wide text-faint">
+                <History size={12} /> История
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {task.activity.map((a) => {
+                  const actor = users.find((u) => u.id === a.actorId);
+                  return (
+                    <div key={a.id} className="flex items-center gap-2 text-2xs text-faint">
+                      <Avatar user={actor} size={16} />
+                      <span className="text-muted">{actor?.fullName}</span>
+                      <span>{a.action}</span>
+                      <span className="ml-auto shrink-0">{formatRelative(a.createdAt)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">

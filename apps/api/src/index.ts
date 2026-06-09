@@ -3,6 +3,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
+import multipart from '@fastify/multipart';
+import { saveStream, fileResponse, MAX_FILE_SIZE } from './files.js';
 import { prisma } from './db.js';
 import { getCurrentUser, requireUser, signToken } from './auth.js';
 import { canCreateForOthers, taskVisibilityWhere } from './visibility.js';
@@ -30,6 +32,13 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: 'Отменено',
 };
 
+// Ищет @упоминания в тексте комментария по полному имени пользователя.
+async function findMentions(body: string): Promise<string[]> {
+  if (!body.includes('@')) return [];
+  const users = await prisma.user.findMany({ where: { active: true } });
+  return users.filter((u) => body.includes(`@${u.fullName}`)).map((u) => u.id);
+}
+
 // Зеркалирование событий задачи в привязанную Telegram-группу проекта.
 async function notifyProjectChat(projectId: string | null | undefined, text: string) {
   if (!projectId) return;
@@ -40,6 +49,7 @@ async function notifyProjectChat(projectId: string | null | undefined, text: str
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
 await app.register(websocket);
+await app.register(multipart, { limits: { fileSize: MAX_FILE_SIZE, files: 1 } });
 
 // Единый формат ошибок: клиент всегда получает JSON { error }, без стектрейсов наружу.
 app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
@@ -55,6 +65,7 @@ const taskInclude = {
   participants: true,
   comments: { orderBy: { createdAt: 'asc' as const } },
   attachments: { orderBy: { createdAt: 'asc' as const } },
+  activity: { orderBy: { createdAt: 'asc' as const } },
 };
 
 function serializeTask(t: any) {
@@ -96,7 +107,12 @@ function serializeTask(t: any) {
       authorId: a.authorId,
       createdAt: a.createdAt.toISOString(),
     })),
-    activity: [],
+    activity: (t.activity ?? []).map((a: any) => ({
+      id: a.id,
+      actorId: a.actorId,
+      action: a.action,
+      createdAt: a.createdAt.toISOString(),
+    })),
     createdAt: t.createdAt.toISOString(),
     archived: t.archived,
   };
@@ -564,11 +580,18 @@ app.post('/tasks/:id/comments', async (req, reply) => {
   const { body } = req.body as { body: string };
   await prisma.comment.create({ data: { taskId: id, authorId: me.id, body } });
   const task = await prisma.task.findUnique({ where: { id }, include: { participants: true } });
+  const mentioned = new Set(await findMentions(body));
+  mentioned.delete(me.id);
   const recipients = new Set<string>();
   if (task?.assigneeId) recipients.add(task.assigneeId);
   if (task?.creatorId) recipients.add(task.creatorId);
   task?.participants.forEach((p) => recipients.add(p.userId));
   recipients.delete(me.id);
+  for (const userId of mentioned) {
+    await prisma.notification.create({ data: { userId, taskId: id, type: 'mentioned' } });
+    broadcast({ type: 'notification.created', userId });
+    recipients.delete(userId); // не дублируем «прокомментировал»
+  }
   for (const userId of recipients) {
     await prisma.notification.create({ data: { userId, taskId: id, type: 'commented' } });
     broadcast({ type: 'notification.created', userId });
@@ -596,6 +619,43 @@ app.post('/tasks/:id/attachments', async (req, reply) => {
   broadcast({ type: 'task.updated', taskId: id });
   const updated = await prisma.task.findUnique({ where: { id }, include: taskInclude });
   return serializeTask(updated);
+});
+
+// Загрузка файла-вложения (multipart). value = "имя-на-диске|оригинальное имя".
+app.post('/tasks/:id/upload', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  const { id } = req.params as { id: string };
+  const file = await (req as any).file();
+  if (!file) return reply.code(400).send({ error: 'Файл не передан' });
+  const kind = file.fields?.kind?.value === 'completion_proof' ? 'completion_proof' : 'attachment';
+  const stored = await saveStream(file.filename, file.file);
+  if (file.file.truncated) return reply.code(413).send({ error: 'Файл больше 20 МБ' });
+  await prisma.attachment.create({
+    data: {
+      taskId: id,
+      kind: kind as any,
+      format: 'file',
+      value: `${stored}|${file.filename}`,
+      authorId: me.id,
+    },
+  });
+  await prisma.activityEntry.create({
+    data: { taskId: id, actorId: me.id, action: `приложен файл «${file.filename}»` },
+  });
+  broadcast({ type: 'task.updated', taskId: id });
+  const updated = await prisma.task.findUnique({ where: { id }, include: taskInclude });
+  return serializeTask(updated);
+});
+
+// Раздача загруженных файлов.
+app.get('/files/:name', async (req, reply) => {
+  const { name } = req.params as { name: string };
+  const f = await fileResponse(name);
+  if (!f) return reply.code(404).send({ error: 'Файл не найден' });
+  reply.header('Content-Type', f.type).header('Content-Length', f.size);
+  reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+  return reply.send(f.stream);
 });
 
 // --- AI (ChatPRD/описания) ---
@@ -642,6 +702,13 @@ app.get('/notifications', async (req, reply) => {
     where: { userId: me.id },
     orderBy: { createdAt: 'desc' },
   });
+});
+
+app.post('/notifications/read-all', async (req, reply) => {
+  const me = await requireUser(req, reply);
+  if (!me) return;
+  await prisma.notification.updateMany({ where: { userId: me.id, read: false }, data: { read: true } });
+  return { ok: true };
 });
 
 app.post('/notifications/:id/read', async (req, reply) => {

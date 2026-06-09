@@ -8,7 +8,7 @@ import type {
   TaskStatus,
   User,
 } from '@taskflow/shared';
-import { api, setToken, wsConnect } from './api';
+import { api, setToken, uploadFile, wsConnect } from './api';
 
 export type Theme = 'dark' | 'light';
 
@@ -67,7 +67,9 @@ interface AppState {
   createTask: (data: Partial<Task>) => Promise<void>;
   addComment: (taskId: string, body: string) => Promise<void>;
   addProof: (taskId: string, value: string) => Promise<void>;
+  uploadTaskFile: (taskId: string, file: File, kind: 'attachment' | 'completion_proof') => Promise<void>;
   markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
 
   createPayment: (data: Partial<PaymentEvent>) => Promise<void>;
   markPaymentPaid: (id: string) => Promise<void>;
@@ -227,11 +229,21 @@ export const useStore = create<AppState>((set, get) => ({
     set((s) => ({ tasks: s.tasks.map((t) => (t.id === taskId ? updated : t)) }));
   },
 
+  uploadTaskFile: async (taskId, file, kind) => {
+    const updated = await uploadFile(taskId, file, kind);
+    set((s) => ({ tasks: s.tasks.map((t) => (t.id === taskId ? updated : t)) }));
+  },
+
   markNotificationRead: (id) => {
     set((s) => ({
       notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
     }));
     api.readNotification(id).catch(() => {});
+  },
+
+  markAllNotificationsRead: () => {
+    set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, read: true })) }));
+    api.readAllNotifications().catch(() => {});
   },
 
   createPayment: async (data) => {
