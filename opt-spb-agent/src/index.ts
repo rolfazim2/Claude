@@ -30,6 +30,7 @@ async function main(): Promise<void> {
   const reviewed = loadReviewed();
 
   const session = new AdminSession(cfg);
+  const decider = new Decider(cfg);
   let queueStart = 0;
   let queueEnd = 0;
 
@@ -39,7 +40,6 @@ async function main(): Promise<void> {
 
     const queue = new TagQueue(session);
     const search = new ProductSearch(session);
-    const decider = new Decider(cfg);
     const image = new ImagePipeline(session);
     const yandex = new YandexImages(session, decider);
     const creator = new ProductCreator(session, image, yandex, cfg.imageSource);
@@ -147,14 +147,29 @@ async function main(): Promise<void> {
     await session.close();
   }
 
-  const stats: RunStats = { mode: cfg.mode, startedAt, finishedAt: new Date(), queueStart, queueEnd, outcomes };
+  const stats: RunStats = {
+    mode: cfg.mode,
+    startedAt,
+    finishedAt: new Date(),
+    queueStart,
+    queueEnd,
+    outcomes,
+    llm: decider.usage.calls > 0 ? decider.usage : undefined,
+  };
   const report = buildReport(stats);
   const path = reportPath(startedAt);
   saveReport(report, path);
   saveReviewed(reviewed);
   log.info(`Отчёт сохранён: ${path}`);
   // Краткая сводка в stdout для логов CI.
-  log.info('Итог', { queue: `${queueStart}->${queueEnd}`, bound: outcomes.filter((o) => o.decision === 'bind').length, created: outcomes.filter((o) => o.decision === 'create').length, review: outcomes.filter((o) => o.decision === 'review').length });
+  log.info('Итог', {
+    queue: `${queueStart}->${queueEnd}`,
+    bound: outcomes.filter((o) => o.decision === 'bind').length,
+    created: outcomes.filter((o) => o.decision === 'create').length,
+    review: outcomes.filter((o) => o.decision === 'review').length,
+    llmCalls: decider.usage.calls,
+    llmTokens: `${decider.usage.inputTokens}/${decider.usage.outputTokens}`,
+  });
 }
 
 function describeIntent(d: BindDecision | CreateDecision): string {

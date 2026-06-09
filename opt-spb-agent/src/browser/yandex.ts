@@ -34,7 +34,9 @@ export class YandexImages {
    * Найти и подтвердить точную картинку. Возвращает CORS-открытый URL (avatars.mds.yandex.net)
    * для последующей загрузки в filemanager, либо null если ничего не прошло проверку.
    */
-  async findVerifiedImage(tag: TagConfig, query: string, maxCandidates = 6): Promise<string | null> {
+  // maxCandidates=4: каждый кандидат — это vision-вызов с картинкой (~1.5к токенов).
+  // Останавливаемся на первом подтверждённом, так что обычно хватает 1–2 проверок.
+  async findVerifiedImage(tag: TagConfig, query: string, maxCandidates = 4): Promise<string | null> {
     const candidates = await this.scrape(query, maxCandidates * 2);
     if (!candidates.length) {
       log.warn(`Яндекс не вернул кандидатов по запросу «${query}» (возможна капча/блок IP)`);
