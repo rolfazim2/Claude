@@ -16,6 +16,7 @@ export default {
         faint: 'var(--faint)',
         accent: 'var(--accent)',
         accentHover: 'var(--accentHover)',
+        accent2: 'var(--accent2)',
       },
       fontFamily: {
         sans: [
@@ -31,7 +32,7 @@ export default {
         '2xs': ['11px', '15px'],
       },
       boxShadow: {
-        panel: '0 8px 40px rgba(0,0,0,0.5)',
+        panel: 'var(--panel-shadow)',
       },
     },
   },

@@ -76,10 +76,10 @@ export function Login() {
 
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-xl font-bold text-white">
+          <div className="brand-gradient mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg">
             T
           </div>
-          <h1 className="text-xl font-semibold">TaskFlow</h1>
+          <h1 className="brand-text text-2xl font-bold">TaskFlow</h1>
           <p className="mt-1 text-[13px] text-muted">Войдите через Telegram</p>
         </div>
 

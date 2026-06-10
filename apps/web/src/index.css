@@ -3,39 +3,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Светлая тема — основная (как в ClickUp): белый фон, фиолетово-розовые акценты. */
 :root,
-[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #08090a;
-  --surface: #0f1011;
-  --elevated: #16171a;
-  --hover: #1c1d21;
-  --border: #23252a;
-  --borderSoft: #1a1c20;
-  --text: #e8e8ea;
-  --muted: #8a8f98;
-  --faint: #5c6066;
-  --accent: #5e6ad2;
-  --accentHover: #6e79e0;
-  --scrollbar: #23252a;
-  --scrollbar-hover: #2e3138;
-}
-
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #ffffff;
-  --surface: #fbfbfa;
+  --bg: #f7f8fc;
+  --surface: #ffffff;
   --elevated: #ffffff;
-  --hover: #f1f1ef;
-  --border: #e8e8e5;
-  --borderSoft: #efefec;
-  --text: #1d1d1f;
-  --muted: #6b7177;
-  --faint: #9aa0a6;
-  --accent: #5e6ad2;
-  --accentHover: #4f5ac0;
-  --scrollbar: #d8d8d4;
-  --scrollbar-hover: #c4c4c0;
+  --hover: #f3f1fd;
+  --border: #e9eaf2;
+  --borderSoft: #f0f1f6;
+  --text: #1a1730;
+  --muted: #6b6f86;
+  --faint: #9a9fb5;
+  --accent: #7b68ee;
+  --accentHover: #6a55e8;
+  --accent2: #fd71af;
+  --panel-shadow: 0 12px 48px rgba(123, 104, 238, 0.18);
+  --scrollbar: #dcd8f5;
+  --scrollbar-hover: #c7c0ef;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0e0d18;
+  --surface: #15131f;
+  --elevated: #1b1828;
+  --hover: #251f3a;
+  --border: #2a2640;
+  --borderSoft: #211d33;
+  --text: #ecebf5;
+  --muted: #9a96b5;
+  --faint: #66627e;
+  --accent: #8c7bf0;
+  --accentHover: #9d8df3;
+  --accent2: #fd71af;
+  --panel-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  --scrollbar: #2a2640;
+  --scrollbar-hover: #3a3553;
 }
 
 html,
@@ -73,17 +78,37 @@ body {
   background: transparent;
 }
 
+/* Фирменный градиент ClickUp (фиолетовый → розовый). */
+.brand-gradient {
+  background-image: linear-gradient(135deg, #7b68ee 0%, #a45cf0 45%, #fd71af 100%);
+}
+.brand-text {
+  background-image: linear-gradient(135deg, #7b68ee 0%, #fd71af 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-all;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accentHover;
+    @apply btn text-white;
+    background-image: linear-gradient(135deg, #7b68ee 0%, #9a5cf0 100%);
+    box-shadow: 0 2px 8px rgba(123, 104, 238, 0.35);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.06);
   }
   .btn-ghost {
-    @apply btn text-muted hover:bg-hover hover:text-text;
+    @apply btn font-medium text-muted hover:bg-hover hover:text-text;
   }
   .card {
-    @apply rounded-lg border border-border bg-elevated;
+    @apply rounded-xl border border-border bg-elevated;
+  }
+  /* Pill-статус в стиле ClickUp — залитый цветом. */
+  .status-pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-white;
   }
 }

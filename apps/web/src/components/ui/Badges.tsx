@@ -19,11 +19,7 @@ export function StatusDot({ status, size = 8 }: { status: TaskStatus; size?: num
 export function StatusBadge({ status }: { status: TaskStatus }) {
   const meta = STATUS_META[status];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-2xs font-medium"
-      style={{ background: `${meta.color}1a`, color: meta.color }}
-    >
-      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: meta.color }} />
+    <span className="status-pill" style={{ background: meta.color }}>
       {meta.label}
     </span>
   );

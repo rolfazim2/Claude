@@ -34,9 +34,8 @@ function Column({ status, tasks }: { status: TaskStatus; tasks: Task[] }) {
   return (
     <div className="flex w-72 shrink-0 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: meta.color }} />
-        <span className="text-[13px] font-medium">{meta.label}</span>
-        <span className="text-2xs text-faint">{tasks.length}</span>
+        <span className="status-pill" style={{ background: meta.color }}>{meta.label}</span>
+        <span className="text-2xs font-semibold text-faint">{tasks.length}</span>
       </div>
       <div
         ref={setNodeRef}

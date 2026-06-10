@@ -20,10 +20,15 @@ import { useStore } from '../store';
 import { Avatar } from './ui/Avatar';
 
 const navItem =
-  'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors';
+  'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors';
 
 function navClass({ isActive }: { isActive: boolean }) {
-  return clsx(navItem, isActive ? 'bg-hover text-text' : 'text-muted hover:bg-hover hover:text-text');
+  return clsx(
+    navItem,
+    isActive
+      ? 'bg-accent/12 font-semibold text-accent'
+      : 'text-muted hover:bg-hover hover:text-text',
+  );
 }
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -40,10 +45,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
       <div className="flex items-center gap-2 px-3 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-sm font-bold text-white">
+        <div className="brand-gradient flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm">
           T
         </div>
-        <span className="font-semibold">TaskFlow</span>
+        <span className="brand-text text-[15px] font-bold">TaskFlow</span>
       </div>
 
       <button
