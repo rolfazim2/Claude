@@ -1,14 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
-    <linearGradient id="ib" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#e8e9eb"/><stop offset="1" stop-color="#b9bcc2"/>
+    <linearGradient id="tf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0f1f3"/><stop offset=".6" stop-color="#c8cad0"/><stop offset="1" stop-color="#a8abb2"/>
     </linearGradient>
-    <linearGradient id="is" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2c3e63"/><stop offset="1" stop-color="#4a6db3"/>
+    <linearGradient id="tw" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#101c44"/><stop offset=".5" stop-color="#2e4a9e"/><stop offset="1" stop-color="#6fa0e8"/>
     </linearGradient>
+    <radialGradient id="tg" cx=".7" cy=".2" r=".9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".25"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect x="60" y="55" width="180" height="190" rx="16" fill="url(#ib)"/>
-  <rect x="68" y="63" width="164" height="174" rx="9" fill="url(#is)"/>
-  <circle cx="150" cy="150" r="40" fill="#5a82c8" opacity=".5"/>
-  <circle cx="150" cy="150" r="22" fill="#7aa0e0" opacity=".5"/>
+  <ellipse cx="150" cy="270" rx="96" ry="9" fill="#000" opacity=".10"/>
+  <rect x="56" y="42" width="188" height="216" rx="17" fill="url(#tf)"/>
+  <rect x="62" y="48" width="176" height="204" rx="11" fill="#0a0a0c"/>
+  <rect x="66" y="52" width="168" height="196" rx="8" fill="url(#tw)"/>
+  <rect x="66" y="52" width="168" height="196" rx="8" fill="url(#tg)"/>
+  <circle cx="150" cy="58" r="2.4" fill="#15151c"/>
+  <path d="M92 52h44L66 174V92a40 40 0 0 1 26-40z" fill="#fff" opacity=".05"/>
+  <text x="150" y="155" font-family="Helvetica,Arial" font-size="30" font-weight="200" fill="#fff" text-anchor="middle" opacity=".95">09:41</text>
 </svg>

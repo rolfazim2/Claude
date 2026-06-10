@@ -1,17 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
   <defs>
-    <linearGradient id="hp" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#6e6e73"/><stop offset="1" stop-color="#3c3c3d"/>
+    <linearGradient id="hf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9a9aa0"/><stop offset=".5" stop-color="#5c5c62"/><stop offset="1" stop-color="#3a3a3f"/>
     </linearGradient>
-    <linearGradient id="hs" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2b1f4e"/><stop offset=".5" stop-color="#7a3b6e"/><stop offset="1" stop-color="#e0673c"/>
+    <linearGradient id="hw" x1="0" y1="0" x2=".7" y2="1">
+      <stop offset="0" stop-color="#0d1b3e"/><stop offset=".45" stop-color="#34246b"/><stop offset=".75" stop-color="#8a3a78"/><stop offset="1" stop-color="#e8744a"/>
     </linearGradient>
+    <radialGradient id="hg" cx=".5" cy=".5" r=".55">
+      <stop offset="0" stop-color="#a86ae0" stop-opacity=".4"/><stop offset="1" stop-color="#a86ae0" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <g transform="rotate(-8 300 200)">
-    <rect x="210" y="40" width="180" height="340" rx="36" fill="url(#hp)"/>
-    <rect x="219" y="49" width="162" height="322" rx="28" fill="url(#hs)"/>
-    <rect x="262" y="62" width="76" height="20" rx="10" fill="#000"/>
-    <circle cx="300" cy="230" r="58" fill="#ffffff" opacity=".14"/>
-    <circle cx="300" cy="230" r="34" fill="#ffffff" opacity=".18"/>
+  <ellipse cx="300" cy="216" rx="280" ry="190" fill="url(#hg)"/>
+  <g transform="rotate(-10 300 210)">
+    <rect x="212" y="40" width="176" height="348" rx="40" fill="url(#hf)"/>
+    <rect x="221" y="49" width="158" height="330" rx="32" fill="#0a0a0c"/>
+    <rect x="226" y="54" width="148" height="320" rx="27" fill="url(#hw)"/>
+    <rect x="266" y="68" width="68" height="19" rx="9.5" fill="#0a0a0c"/>
+    <path d="M256 54h52L226 196v-92a50 50 0 0 1 30-50z" fill="#fff" opacity=".06"/>
+    <text x="300" y="172" font-family="Helvetica,Arial" font-size="44" font-weight="200" fill="#fff" text-anchor="middle" opacity=".95">09:41</text>
   </g>
 </svg>

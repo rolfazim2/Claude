@@ -1,15 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
-    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5a74d8"/><stop offset="1" stop-color="#3a4fa8"/>
+    <linearGradient id="bf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c92e8"/><stop offset=".5" stop-color="#5068c8"/><stop offset="1" stop-color="#3a4da0"/>
     </linearGradient>
-    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b2a52"/><stop offset="1" stop-color="#27408f"/>
+    <linearGradient id="bw" x1="0" y1="0" x2=".6" y2="1">
+      <stop offset="0" stop-color="#16245c"/><stop offset=".5" stop-color="#3450b8"/><stop offset="1" stop-color="#7aa8f0"/>
     </linearGradient>
+    <radialGradient id="bg2" cx=".68" cy=".22" r=".8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".3"/><stop offset=".55" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect x="95" y="35" width="110" height="230" rx="22" fill="url(#b)"/>
-  <rect x="101" y="41" width="98" height="218" rx="17" fill="url(#s)"/>
-  <rect x="130" y="50" width="40" height="12" rx="6" fill="#0d1530"/>
-  <circle cx="150" cy="160" r="34" fill="#3a55b5" opacity=".6"/>
-  <circle cx="150" cy="160" r="20" fill="#5a74d8" opacity=".6"/>
+  <ellipse cx="150" cy="276" rx="72" ry="9" fill="#000" opacity=".10"/>
+  <rect x="93" y="28" width="114" height="240" rx="26" fill="url(#bf)"/>
+  <rect x="208" y="96" width="3.5" height="32" rx="1.75" fill="#8aa0ee"/>
+  <rect x="87" y="80" width="3.5" height="17" rx="1.75" fill="#8aa0ee"/>
+  <rect x="87" y="106" width="3.5" height="25" rx="1.75" fill="#8aa0ee"/>
+  <rect x="99" y="34" width="102" height="228" rx="21" fill="#0a0a0c"/>
+  <rect x="102" y="37" width="96" height="222" rx="18" fill="url(#bw)"/>
+  <rect x="102" y="37" width="96" height="222" rx="18" fill="url(#bg2)"/>
+  <rect x="128" y="47" width="44" height="13" rx="6.5" fill="#0a0a0c"/>
+  <path d="M120 37h24L102 118v-42a39 39 0 0 1 18-39z" fill="#fff" opacity=".06"/>
+  <text x="150" y="118" font-family="Helvetica,Arial" font-size="29" font-weight="200" fill="#fff" text-anchor="middle" opacity=".95">09:41</text>
 </svg>

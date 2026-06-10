@@ -1,11 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
-    <linearGradient id="mm" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#eceded"/><stop offset="1" stop-color="#c2c4c7"/>
+    <linearGradient id="nf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f5f7"/><stop offset=".7" stop-color="#d2d4d9"/><stop offset="1" stop-color="#b4b7be"/>
     </linearGradient>
+    <radialGradient id="ng" cx=".4" cy=".2" r="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".7"/><stop offset=".6" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect x="75" y="110" width="150" height="80" rx="18" fill="url(#mm)"/>
-  <rect x="75" y="178" width="150" height="12" rx="6" fill="#a8aaad"/>
-  <circle cx="150" cy="150" r="16" fill="none" stroke="#9b9da0" stroke-width="3"/>
-  <path d="M150 142a8 8 0 1 1-6 13" fill="none" stroke="#9b9da0" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="150" cy="208" rx="86" ry="9" fill="#000" opacity=".10"/>
+  <rect x="72" y="104" width="156" height="92" rx="20" fill="url(#nf)"/>
+  <rect x="72" y="104" width="156" height="92" rx="20" fill="url(#ng)"/>
+  <rect x="72" y="186" width="156" height="10" rx="5" fill="#9b9da4"/>
+  <circle cx="150" cy="148" r="17" fill="none" stroke="#a8abb2" stroke-width="3"/>
+  <path d="M150 139a9 9 0 1 1-7 14.5" fill="none" stroke="#a8abb2" stroke-width="3" stroke-linecap="round"/>
 </svg>

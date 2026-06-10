@@ -305,17 +305,23 @@ function productCard(p) {
   const inFav = Fav.has(p.id);
   return `
     <div class="card">
-      ${p.badge ? `<span class="${badgeClass(p.badge)}">${escapeHtml(p.badge)}</span>` : ''}
-      <button class="fav-btn ${inFav ? 'active' : ''}" data-fav="${p.id}" aria-label="В избранное">${Icons.heart}</button>
-      <a class="card-img" href="/product?id=${p.id}"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy"></a>
+      <div class="card-media">
+        ${p.badge ? `<span class="${badgeClass(p.badge)}">${escapeHtml(p.badge)}</span>` : ''}
+        <button class="fav-btn ${inFav ? 'active' : ''}" data-fav="${p.id}" aria-label="В избранное">${Icons.heart}</button>
+        <a href="/product?id=${p.id}"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy"></a>
+      </div>
       ${starsHtml(p.rating, p.reviewsCount)}
       <a class="card-name" href="/product?id=${p.id}">${escapeHtml(p.name)}</a>
-      <div class="card-price">
-        <span class="price">${fmt(p.price)}</span>
-        ${p.oldPrice ? `<span class="price-old">${fmt(p.oldPrice)}</span>` : ''}
-      </div>
       <div class="installment">или от <b>${fmt(monthly(p.price))}/мес</b> в рассрочку</div>
-      <button class="btn ${inCart ? 'in-cart' : ''}" data-add="${p.id}">${inCart ? 'В корзине ✓' : 'В корзину'}</button>
+      <div class="card-bottom">
+        <div class="card-price">
+          <span class="price">${fmt(p.price)}</span>
+          ${p.oldPrice ? `<span class="price-old">${fmt(p.oldPrice)}</span>` : ''}
+        </div>
+        <button class="buy-btn ${inCart ? 'in-cart' : ''}" data-add="${p.id}" aria-label="В корзину" title="${inCart ? 'В корзине' : 'В корзину'}">
+          ${inCart ? '✓' : Icons.bag}
+        </button>
+      </div>
     </div>`;
 }
 
@@ -349,7 +355,8 @@ document.addEventListener('click', (e) => {
   if (add) {
     Cart.add(+add.dataset.add);
     add.classList.add('in-cart');
-    add.textContent = 'В корзине ✓';
+    if (add.classList.contains('buy-btn')) add.textContent = '✓';
+    else add.textContent = 'В корзине ✓';
     toast('Товар добавлен в корзину');
     return;
   }

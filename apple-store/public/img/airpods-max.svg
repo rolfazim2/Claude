@@ -1,12 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
-    <linearGradient id="am" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#c8c0e8"/><stop offset="1" stop-color="#9a8fc8"/>
+    <linearGradient id="xc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d4cdf0"/><stop offset=".6" stop-color="#b0a4dc"/><stop offset="1" stop-color="#9488c4"/>
     </linearGradient>
+    <linearGradient id="xh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b8addf"/><stop offset=".5" stop-color="#ccc2ea"/><stop offset="1" stop-color="#b8addf"/>
+    </linearGradient>
+    <radialGradient id="xg" cx=".35" cy=".25" r="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".45"/><stop offset=".6" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <path d="M80 160v-20c0-44 31-78 70-78s70 34 70 78v20" fill="none" stroke="#b0a6d8" stroke-width="16" stroke-linecap="round"/>
-  <rect x="58" y="150" width="48" height="84" rx="22" fill="url(#am)"/>
-  <rect x="194" y="150" width="48" height="84" rx="22" fill="url(#am)"/>
-  <ellipse cx="82" cy="192" rx="14" ry="30" fill="#7a6fb0"/>
-  <ellipse cx="218" cy="192" rx="14" ry="30" fill="#7a6fb0"/>
+  <ellipse cx="150" cy="266" rx="86" ry="9" fill="#000" opacity=".10"/>
+  <path d="M76 168v-32c0-46 33-82 74-82s74 36 74 82v32" fill="none" stroke="url(#xh)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M88 166v-30c0-39 28-70 62-70s62 31 62 70v30" fill="none" stroke="#9e92cc" stroke-width="4" opacity=".5"/>
+  <rect x="52" y="150" width="54" height="94" rx="25" fill="url(#xc)"/>
+  <rect x="52" y="150" width="54" height="94" rx="25" fill="url(#xg)"/>
+  <rect x="194" y="150" width="54" height="94" rx="25" fill="url(#xc)"/>
+  <rect x="194" y="150" width="54" height="94" rx="25" fill="url(#xg)"/>
+  <ellipse cx="79" cy="197" rx="15" ry="33" fill="#6e5fa8"/>
+  <ellipse cx="221" cy="197" rx="15" ry="33" fill="#6e5fa8"/>
+  <ellipse cx="79" cy="197" rx="9" ry="26" fill="#5a4c92"/>
+  <ellipse cx="221" cy="197" rx="9" ry="26" fill="#5a4c92"/>
 </svg>

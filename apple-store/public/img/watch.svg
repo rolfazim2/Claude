@@ -1,16 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
-    <linearGradient id="wb" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f0d4cc"/><stop offset="1" stop-color="#d8a89c"/>
+    <linearGradient id="wf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4ddd4"/><stop offset=".6" stop-color="#e0b4a4"/><stop offset="1" stop-color="#c8957f"/>
     </linearGradient>
-    <linearGradient id="wd" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101018"/><stop offset="1" stop-color="#28283a"/>
+    <linearGradient id="ww" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#1c1030"/><stop offset=".55" stop-color="#5a2a6e"/><stop offset="1" stop-color="#e06a8a"/>
     </linearGradient>
+    <linearGradient id="wb2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0cfc2"/><stop offset=".5" stop-color="#e4b8a6"/><stop offset="1" stop-color="#f0cfc2"/>
+    </linearGradient>
+    <radialGradient id="wg" cx=".7" cy=".2" r=".9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".25"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <path d="M115 30h70l-8 50h-54z" fill="#e8beb2"/>
-  <path d="M115 270h70l-8-50h-54z" fill="#e8beb2"/>
-  <rect x="95" y="75" width="110" height="150" rx="32" fill="url(#wb)"/>
-  <rect x="104" y="84" width="92" height="132" rx="24" fill="url(#wd)"/>
-  <rect x="206" y="115" width="8" height="30" rx="4" fill="#d8a89c"/>
-  <text x="150" y="160" font-family="Helvetica,Arial" font-size="34" fill="#fff" text-anchor="middle">10:09</text>
+  <ellipse cx="150" cy="276" rx="56" ry="8" fill="#000" opacity=".10"/>
+  <path d="M116 26h68c2 0 3 1.4 2.7 3.3L180 82h-60l-6.7-52.7c-.2-1.9.8-3.3 2.7-3.3z" fill="url(#wb2)"/>
+  <path d="M116 274h68c2 0 3-1.4 2.7-3.3L180 218h-60l-6.7 52.7c-.2 1.9.8 3.3 2.7 3.3z" fill="url(#wb2)"/>
+  <rect x="93" y="72" width="114" height="156" rx="34" fill="url(#wf)"/>
+  <rect x="101" y="80" width="98" height="140" rx="27" fill="#0a0a0c"/>
+  <rect x="105" y="84" width="90" height="132" rx="23" fill="url(#ww)"/>
+  <rect x="105" y="84" width="90" height="132" rx="23" fill="url(#wg)"/>
+  <rect x="206" y="112" width="9" height="32" rx="4.5" fill="#e0b4a4"/>
+  <rect x="206" y="156" width="7" height="22" rx="3.5" fill="#d8a896"/>
+  <text x="150" y="142" font-family="Helvetica,Arial" font-size="26" font-weight="300" fill="#fff" text-anchor="middle">10:09</text>
+  <text x="150" y="170" font-family="Helvetica,Arial" font-size="11" fill="#f0b0c8" text-anchor="middle">ПН 9 ИЮН</text>
 </svg>

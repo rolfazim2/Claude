@@ -1,7 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
-  <rect x="95" y="40" width="110" height="220" rx="24" fill="#ffffff" opacity=".55" stroke="#b9bcc2" stroke-width="3"/>
-  <g fill="none" stroke="#b9bcc2" stroke-width="3">
-    <circle cx="128" cy="86" r="12"/><circle cx="158" cy="86" r="12"/><circle cx="143" cy="113" r="12"/>
-  </g>
-  <circle cx="150" cy="185" r="34" fill="none" stroke="#b9bcc2" stroke-width="3" stroke-dasharray="8 6"/>
+  <defs>
+    <linearGradient id="cc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".75"/><stop offset="1" stop-color="#dfe1e6" stop-opacity=".75"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="150" cy="276" rx="70" ry="8" fill="#000" opacity=".14"/>
+  <rect x="94" y="32" width="112" height="236" rx="27" fill="url(#cc)" stroke="#c2c4ca" stroke-width="2.5"/>
+  <rect x="104" y="44" width="44" height="44" rx="13" fill="none" stroke="#b4b7be" stroke-width="2.5"/>
+  <circle cx="118" cy="58" r="6.5" fill="none" stroke="#b4b7be" stroke-width="2.5"/>
+  <circle cx="134" cy="74" r="6.5" fill="none" stroke="#b4b7be" stroke-width="2.5"/>
+  <circle cx="150" cy="178" r="36" fill="none" stroke="#b4b7be" stroke-width="2.5" stroke-dasharray="9 7"/>
+  <rect x="208" y="98" width="3.5" height="34" rx="1.75" fill="#b4b7be"/>
 </svg>
