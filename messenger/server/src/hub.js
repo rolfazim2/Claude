@@ -76,6 +76,7 @@ function handleClientEvent(userId, raw) {
     }
     const message = publicMessage(messages.create(chatId, userId, { text, replyTo }));
     broadcastToChat(chatId, { type: 'message', message });
+    require('./bots').onNewMessage(message);
     // Подтверждение отправителю: связываем с временным id на клиенте
     if (msg.tempId) sendTo(userId, { type: 'ack', tempId: msg.tempId, message });
     return;

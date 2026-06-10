@@ -45,11 +45,18 @@
           </div>
         </div>
         <button id="profile-btn" class="menu-item">👤 Мой профиль</button>
+        <button id="ai-chat-btn" class="menu-item">✨ Gram AI</button>
         <button id="new-group-btn" class="menu-item">👥 Новая группа</button>
         <button id="new-channel-btn" class="menu-item">📢 Новый канал</button>
+        <button id="bots-btn" class="menu-item">🤖 Мои боты</button>
         <button id="logout-btn" class="menu-item">🚪 Выйти</button>
       </div>
+      <div class="sidebar-tabs">
+        <button id="tab-chats" class="sidebar-tab active">💬 Чаты</button>
+        <button id="tab-spaces" class="sidebar-tab">📋 Пространства</button>
+      </div>
       <div id="chat-list" class="chat-list"></div>
+      <div id="spaces-list" class="chat-list hidden"></div>
       <div id="search-results" class="chat-list hidden"></div>
     </aside>
 
@@ -97,6 +104,41 @@
           </div>
           <div id="readonly-bar" class="readonly-bar hidden">Публиковать в этом канале могут только администраторы</div>
         </footer>
+      </div>
+
+      <!-- Доска задач пространства -->
+      <div id="space-view" class="space-view hidden">
+        <header class="chat-header">
+          <div class="chat-header-main">
+            <div id="space-avatar" class="avatar"></div>
+            <div class="chat-header-info">
+              <div id="space-title" class="chat-title"></div>
+              <div id="space-status" class="chat-status"></div>
+            </div>
+          </div>
+          <div class="chat-header-actions">
+            <button id="space-add-member-btn" class="icon-btn" title="Добавить участника">➕</button>
+            <button id="space-edit-btn" class="icon-btn hidden" title="Настройки">⚙️</button>
+            <button id="space-delete-btn" class="icon-btn hidden" title="Удалить пространство">🗑</button>
+          </div>
+        </header>
+        <div id="board" class="board">
+          <div class="board-col" data-status="todo">
+            <div class="board-col-header"><span>📝 Надо сделать</span><span class="board-count" id="count-todo"></span></div>
+            <div class="board-cards" id="col-todo"></div>
+            <button class="board-add" data-add-status="todo">＋ Задача</button>
+          </div>
+          <div class="board-col" data-status="doing">
+            <div class="board-col-header"><span>🔄 В работе</span><span class="board-count" id="count-doing"></span></div>
+            <div class="board-cards" id="col-doing"></div>
+            <button class="board-add" data-add-status="doing">＋ Задача</button>
+          </div>
+          <div class="board-col" data-status="done">
+            <div class="board-col-header"><span>✅ Готово</span><span class="board-count" id="count-done"></span></div>
+            <div class="board-cards" id="col-done"></div>
+            <button class="board-add" data-add-status="done">＋ Задача</button>
+          </div>
+        </div>
       </div>
 
       <!-- Панель информации о чате -->
@@ -193,6 +235,80 @@
       <div id="add-member-results" class="group-results"></div>
       <div class="modal-actions">
         <button id="add-member-cancel" class="btn-secondary">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал создания пространства -->
+  <div id="space-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="space-modal-title">Новое пространство</h2>
+      <input id="space-name" class="auth-input" type="text" placeholder="Название" maxlength="64">
+      <input id="space-description" class="auth-input" type="text" placeholder="Описание (необязательно)" maxlength="512">
+      <input id="space-search" class="auth-input" type="text" placeholder="Поиск участников">
+      <div id="space-selected" class="group-selected"></div>
+      <div id="space-results" class="group-results"></div>
+      <div class="modal-actions">
+        <button id="space-cancel" class="btn-secondary">Отмена</button>
+        <button id="space-create" class="auth-submit">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал задачи -->
+  <div id="task-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="task-modal-title">Новая задача</h2>
+      <input id="task-title" class="auth-input" type="text" placeholder="Название задачи" maxlength="128">
+      <textarea id="task-description" class="auth-input task-textarea" placeholder="Описание" rows="3"></textarea>
+      <div class="task-row">
+        <select id="task-status" class="auth-input">
+          <option value="todo">📝 Надо сделать</option>
+          <option value="doing">🔄 В работе</option>
+          <option value="done">✅ Готово</option>
+        </select>
+        <select id="task-priority" class="auth-input">
+          <option value="low">🟢 Низкий</option>
+          <option value="medium" selected>🟡 Средний</option>
+          <option value="high">🔴 Высокий</option>
+        </select>
+      </div>
+      <div class="task-row">
+        <select id="task-assignee" class="auth-input"></select>
+        <input id="task-due" class="auth-input" type="date">
+      </div>
+      <div class="modal-actions">
+        <button id="task-delete" class="btn-secondary danger hidden">Удалить</button>
+        <button id="task-cancel" class="btn-secondary">Отмена</button>
+        <button id="task-save" class="auth-submit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал ботов -->
+  <div id="bots-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>🤖 Мои боты</h2>
+      <div id="bots-list" class="bots-list"></div>
+      <div class="list-section">Создать бота</div>
+      <input id="bot-username" class="auth-input" type="text" placeholder="Логин (оканчивается на bot)" maxlength="32">
+      <input id="bot-name" class="auth-input" type="text" placeholder="Имя бота" maxlength="64">
+      <div id="bot-error" class="auth-error hidden"></div>
+      <div class="modal-actions">
+        <button id="bots-close" class="btn-secondary">Закрыть</button>
+        <button id="bot-create" class="auth-submit">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал добавления участника пространства -->
+  <div id="space-member-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Добавить в пространство</h2>
+      <input id="space-member-search" class="auth-input" type="text" placeholder="Поиск пользователей">
+      <div id="space-member-results" class="group-results"></div>
+      <div class="modal-actions">
+        <button id="space-member-cancel" class="btn-secondary">Закрыть</button>
       </div>
     </div>
   </div>

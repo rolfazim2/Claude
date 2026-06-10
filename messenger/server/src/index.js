@@ -4,6 +4,9 @@ const http = require('node:http');
 const path = require('node:path');
 const fs = require('node:fs');
 const api = require('./api');
+require('./api-bots');   // регистрируют маршруты в api.routes
+require('./api-spaces');
+const bots = require('./bots');
 const hub = require('./hub');
 const auth = require('./auth');
 const { users, files, DATA_DIR } = require('./db');
@@ -216,6 +219,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 hub.attach(server);
+bots.ensureBuiltinBots();
 
 if (require.main === module) {
   server.listen(PORT, HOST, () => {

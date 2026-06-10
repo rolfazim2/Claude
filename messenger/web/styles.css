@@ -882,6 +882,198 @@ html, body {
 
 .search-msg-preview { font-size: 12px; color: var(--text-secondary); }
 
+/* ---------- Вкладки сайдбара ---------- */
+
+.sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sidebar-tab:hover { background: var(--bg-hover); }
+.sidebar-tab.active { background: var(--bg-secondary); color: var(--accent); }
+
+.new-space-btn {
+  margin: 10px 12px;
+  padding: 10px;
+  width: calc(100% - 24px);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.new-space-btn:hover { background: var(--bg-hover); }
+
+/* ---------- Доска задач ---------- */
+
+.space-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.board {
+  flex: 1;
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.board-col {
+  flex: 1;
+  min-width: 240px;
+  max-width: 340px;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.board-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 6px 10px;
+}
+
+.board-count { color: var(--text-secondary); font-weight: 600; font-size: 13px; }
+
+.board-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 40px;
+  flex: 1;
+}
+
+.board-cards.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.task-card {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: grab;
+  border-left: 3px solid transparent;
+}
+
+.task-card:hover { filter: brightness(0.97); }
+[data-theme="dark"] .task-card:hover { filter: brightness(1.15); }
+
+.task-card.prio-high { border-left-color: #e53935; }
+.task-card.prio-medium { border-left-color: #fbc02d; }
+.task-card.prio-low { border-left-color: #4dcd5e; }
+
+.task-card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.task-card.done .task-card-title { text-decoration: line-through; color: var(--text-secondary); }
+
+.task-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.task-due { font-size: 12px; }
+.task-due.overdue { color: var(--danger); font-weight: 600; }
+
+.task-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task-assignee .avatar { width: 20px; height: 20px; min-width: 20px; font-size: 9px; }
+
+.board-add {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.board-add:hover { background: var(--bg-hover); color: var(--accent); }
+
+.task-textarea { resize: vertical; font-family: inherit; }
+.task-row { display: flex; gap: 8px; }
+.task-row > * { flex: 1; min-width: 0; }
+
+.btn-secondary.danger { color: var(--danger); }
+
+/* ---------- Боты ---------- */
+
+.bots-list { margin-bottom: 12px; }
+
+.bot-row {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.bot-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bot-token {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.bot-token:hover { color: var(--accent); }
+
+.bot-badge {
+  font-size: 11px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 8px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 /* ---------- Desktop (Electron, скрытый заголовок окна macOS) ---------- */
 
 body.desktop .sidebar-header {

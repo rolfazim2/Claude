@@ -27,6 +27,13 @@ const state = {
   forwardMessageId: null,
   groupSelected: new Map(), // userId -> user
   groupType: 'group',
+  spaces: [],               // пространства (таск-менеджер)
+  activeSpaceId: null,
+  tasks: new Map(),         // spaceId -> Task[]
+  editingTask: null,        // задача в модалке (null = создание)
+  newTaskStatus: 'todo',
+  spaceSelected: new Map(), // выбранные участники нового пространства
+  draggedTaskId: null,
   recorder: null,           // MediaRecorder для голосовых
   call: null,               // состояние текущего звонка
 };
@@ -317,6 +324,41 @@ function handleServerEvent(ev) {
       handleCallEvent(ev);
       break;
     }
+    case 'space_updated': {
+      const i = state.spaces.findIndex((s) => s.id === ev.space.id);
+      if (i >= 0) state.spaces[i] = ev.space; else state.spaces.push(ev.space);
+      renderSpacesList();
+      if (ev.space.id === state.activeSpaceId) renderSpaceHeader();
+      break;
+    }
+    case 'space_removed': {
+      state.spaces = state.spaces.filter((s) => s.id !== ev.spaceId);
+      if (state.activeSpaceId === ev.spaceId) {
+        state.activeSpaceId = null;
+        $('space-view').classList.add('hidden');
+        $('empty-state').classList.remove('hidden');
+      }
+      renderSpacesList();
+      break;
+    }
+    case 'task_created':
+    case 'task_updated': {
+      const list = state.tasks.get(ev.task.spaceId);
+      if (list) {
+        const i = list.findIndex((t) => t.id === ev.task.id);
+        if (i >= 0) list[i] = ev.task; else list.push(ev.task);
+      }
+      if (ev.task.spaceId === state.activeSpaceId) renderBoard();
+      refreshSpaces();
+      break;
+    }
+    case 'task_deleted': {
+      const list = state.tasks.get(ev.spaceId);
+      if (list) state.tasks.set(ev.spaceId, list.filter((t) => t.id !== ev.taskId));
+      if (ev.spaceId === state.activeSpaceId) renderBoard();
+      refreshSpaces();
+      break;
+    }
   }
 }
 
@@ -340,7 +382,9 @@ async function refreshChats() {
 }
 
 function chatIcon(c) {
-  return c.type === 'group' ? '👥 ' : c.type === 'channel' ? '📢 ' : '';
+  if (c.type === 'group') return '👥 ';
+  if (c.type === 'channel') return '📢 ';
+  return c.peer && c.peer.isBot ? '🤖 ' : '';
 }
 
 function renderChatList() {
@@ -388,10 +432,13 @@ async function openChat(chatId) {
   if (state.activeChatId) state.drafts.set(state.activeChatId, $('message-input').value);
 
   state.activeChatId = chatId;
+  state.activeSpaceId = null;
   cancelEdit();
   cancelReply();
   $('empty-state').classList.add('hidden');
+  $('space-view').classList.add('hidden');
   $('chat-view').classList.remove('hidden');
+  setSidebarTab('chats');
   $('search-input').value = '';
   hideSearch();
   closeInfoPanel();
@@ -437,14 +484,17 @@ function renderChatHeader() {
   } else if (chat.type === 'channel') {
     statusEl.textContent = `${chat.members.length} подписчиков`;
     statusEl.classList.remove('online');
+  } else if (chat.peer && chat.peer.isBot) {
+    statusEl.textContent = 'бот';
+    statusEl.classList.add('online');
   } else if (chat.peer) {
     const p = getPresence(chat.peer);
     statusEl.textContent = fmtLastSeen(p);
     statusEl.classList.toggle('online', !!p.online);
   }
-  const direct = chat.type === 'direct';
-  $('call-audio-btn').classList.toggle('hidden', !direct);
-  $('call-video-btn').classList.toggle('hidden', !direct);
+  const callable = chat.type === 'direct' && chat.peer && !chat.peer.isBot;
+  $('call-audio-btn').classList.toggle('hidden', !callable);
+  $('call-video-btn').classList.toggle('hidden', !callable);
 }
 
 function renderPinnedBar() {
@@ -1312,6 +1362,292 @@ function endCall(notifyPeer = true) {
   callUI(false);
 }
 
+// ---------- Пространства (таск-менеджер) ----------
+
+const STATUS_LIST = ['todo', 'doing', 'done'];
+const PRIORITY_LABEL = { low: '🟢', medium: '🟡', high: '🔴' };
+
+function setSidebarTab(tab) {
+  $('tab-chats').classList.toggle('active', tab === 'chats');
+  $('tab-spaces').classList.toggle('active', tab === 'spaces');
+  $('chat-list').classList.toggle('hidden', tab !== 'chats');
+  $('spaces-list').classList.toggle('hidden', tab !== 'spaces');
+  $('search-results').classList.add('hidden');
+  if (tab === 'spaces') refreshSpaces();
+}
+
+async function refreshSpaces() {
+  const data = await api('GET', '/api/spaces').catch(() => null);
+  if (!data) return;
+  state.spaces = data.spaces;
+  renderSpacesList();
+}
+
+function renderSpacesList() {
+  const el = $('spaces-list');
+  let html = state.spaces.map((s) => `
+    <div class="chat-item ${s.id === state.activeSpaceId ? 'active' : ''}" data-space="${s.id}">
+      ${avatarHtml(s.name, s.id + 500)}
+      <div class="chat-item-body">
+        <div class="chat-item-top"><span class="chat-item-title">📋 ${esc(s.name)}</span></div>
+        <div class="chat-item-bottom">
+          <span class="chat-item-preview">${s.members.length} участников</span>
+          ${s.openTasks ? `<span class="unread-badge">${s.openTasks}</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+  html += '<button id="new-space-btn" class="new-space-btn">＋ Новое пространство</button>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-space]').forEach((item) => {
+    item.onclick = () => openSpace(Number(item.dataset.space));
+  });
+  $('new-space-btn').onclick = openSpaceModal;
+}
+
+const spaceById = (id) => state.spaces.find((s) => s.id === id);
+
+async function openSpace(spaceId) {
+  state.activeSpaceId = spaceId;
+  state.activeChatId = null;
+  closeInfoPanel();
+  $('chat-view').classList.add('hidden');
+  $('empty-state').classList.add('hidden');
+  $('space-view').classList.remove('hidden');
+  renderSpacesList();
+  renderSpaceHeader();
+
+  const data = await api('GET', `/api/spaces/${spaceId}/tasks`);
+  state.tasks.set(spaceId, data.tasks);
+  renderBoard();
+}
+
+function renderSpaceHeader() {
+  const space = spaceById(state.activeSpaceId);
+  if (!space) return;
+  $('space-avatar').outerHTML = avatarHtml(space.name, space.id + 500)
+    .replace('class="avatar', 'id="space-avatar" class="avatar');
+  $('space-title').textContent = '📋 ' + space.name;
+  $('space-status').textContent =
+    `${space.members.length} участников` +
+    (space.description ? ' · ' + space.description : '');
+  const owner = space.myRole === 'owner';
+  $('space-edit-btn').classList.toggle('hidden', !owner);
+  $('space-delete-btn').classList.toggle('hidden', !owner);
+}
+
+function taskCardHtml(t) {
+  const due = t.dueAt ? new Date(t.dueAt) : null;
+  const overdue = due && t.status !== 'done' && due < new Date();
+  const dueLabel = due
+    ? `<span class="task-due ${overdue ? 'overdue' : ''}">📅 ${due.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>`
+    : '<span></span>';
+  const assignee = t.assigneeId
+    ? `<span class="task-assignee">${avatarHtml(t.assigneeName, t.assigneeId, 'small', false, t.assigneeAvatar)}${esc(t.assigneeName.split(' ')[0])}</span>`
+    : '<span></span>';
+  return `
+    <div class="task-card prio-${t.priority} ${t.status === 'done' ? 'done' : ''}"
+         draggable="true" data-task="${t.id}">
+      <div class="task-card-title">${PRIORITY_LABEL[t.priority] || ''} ${esc(t.title)}</div>
+      <div class="task-card-meta">${assignee}${dueLabel}</div>
+    </div>`;
+}
+
+function renderBoard() {
+  const list = state.tasks.get(state.activeSpaceId) || [];
+  for (const status of STATUS_LIST) {
+    const tasks = list.filter((t) => t.status === status)
+      .sort((a, b) => a.position - b.position);
+    $('col-' + status).innerHTML = tasks.map(taskCardHtml).join('');
+    $('count-' + status).textContent = tasks.length || '';
+  }
+
+  document.querySelectorAll('.task-card').forEach((card) => {
+    card.onclick = () => openTaskModal(Number(card.dataset.task));
+    card.ondragstart = (e) => {
+      state.draggedTaskId = Number(card.dataset.task);
+      e.dataTransfer.effectAllowed = 'move';
+    };
+  });
+
+  document.querySelectorAll('.board-cards').forEach((col) => {
+    col.ondragover = (e) => {
+      e.preventDefault();
+      col.classList.add('drag-over');
+    };
+    col.ondragleave = () => col.classList.remove('drag-over');
+    col.ondrop = async (e) => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      const status = col.id.replace('col-', '');
+      const taskId = state.draggedTaskId;
+      state.draggedTaskId = null;
+      if (!taskId) return;
+      const list2 = state.tasks.get(state.activeSpaceId) || [];
+      const task = list2.find((t) => t.id === taskId);
+      if (!task || task.status === status) return;
+      task.status = status; // оптимистично
+      renderBoard();
+      try {
+        const data = await api('PUT', `/api/tasks/${taskId}`, { status });
+        const i = list2.findIndex((t) => t.id === taskId);
+        if (i >= 0) list2[i] = data.task;
+      } catch (err) {
+        alert(err.message);
+        openSpace(state.activeSpaceId);
+      }
+    };
+  });
+}
+
+// ---- Модалка задачи ----
+
+function openTaskModal(taskId, status = 'todo') {
+  const space = spaceById(state.activeSpaceId);
+  if (!space) return;
+  const list = state.tasks.get(state.activeSpaceId) || [];
+  const task = taskId ? list.find((t) => t.id === taskId) : null;
+  state.editingTask = task || null;
+  state.newTaskStatus = status;
+
+  $('task-modal-title').textContent = task ? 'Задача' : 'Новая задача';
+  $('task-title').value = task ? task.title : '';
+  $('task-description').value = task ? task.description : '';
+  $('task-status').value = task ? task.status : status;
+  $('task-priority').value = task ? task.priority : 'medium';
+  $('task-assignee').innerHTML = '<option value="">Без исполнителя</option>' +
+    space.members.filter((m) => !m.isBot).map((m) =>
+      `<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  $('task-assignee').value = task && task.assigneeId ? String(task.assigneeId) : '';
+  $('task-due').value = task && task.dueAt
+    ? new Date(task.dueAt).toISOString().slice(0, 10) : '';
+  $('task-delete').classList.toggle('hidden', !task);
+  $('task-modal').classList.remove('hidden');
+  $('task-title').focus();
+}
+
+async function saveTask() {
+  const title = $('task-title').value.trim();
+  if (!title) { alert('Укажите название задачи'); return; }
+  const body = {
+    title,
+    description: $('task-description').value.trim(),
+    status: $('task-status').value,
+    priority: $('task-priority').value,
+    assigneeId: $('task-assignee').value ? Number($('task-assignee').value) : null,
+    dueAt: $('task-due').value ? new Date($('task-due').value + 'T12:00:00').getTime() : null,
+  };
+  try {
+    const list = state.tasks.get(state.activeSpaceId) || [];
+    if (state.editingTask) {
+      const data = await api('PUT', `/api/tasks/${state.editingTask.id}`, body);
+      const i = list.findIndex((t) => t.id === data.task.id);
+      if (i >= 0) list[i] = data.task;
+    } else {
+      const data = await api('POST', `/api/spaces/${state.activeSpaceId}/tasks`, body);
+      list.push(data.task);
+    }
+    $('task-modal').classList.add('hidden');
+    renderBoard();
+    refreshSpaces();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// ---- Модалка пространства ----
+
+let spaceSearchTimer = 0;
+
+function openSpaceModal() {
+  state.spaceSelected.clear();
+  $('space-name').value = '';
+  $('space-description').value = '';
+  $('space-search').value = '';
+  $('space-results').innerHTML = '';
+  renderSpaceSelected();
+  $('space-modal').classList.remove('hidden');
+  $('space-name').focus();
+}
+
+function renderSpaceSelected() {
+  $('space-selected').innerHTML = [...state.spaceSelected.values()].map((u) =>
+    `<span class="chip" data-remove="${u.id}">${esc(u.name)} ✕</span>`).join('');
+  $('space-selected').querySelectorAll('[data-remove]').forEach((chip) => {
+    chip.onclick = () => {
+      state.spaceSelected.delete(Number(chip.dataset.remove));
+      renderSpaceSelected();
+    };
+  });
+}
+
+async function spaceUserSearch(q, resultsEl, onPick) {
+  if (q.length < 2) { resultsEl.innerHTML = ''; return; }
+  const data = await api('GET', '/api/users?q=' + encodeURIComponent(q));
+  resultsEl.innerHTML = data.users.filter((u) => !u.isBot).map((u) => `
+    <div class="chat-item" data-pick="${u.id}" data-name="${esc(u.name)}">
+      ${avatarHtml(u.name, u.id, 'small', false, u.avatar)}
+      <div class="chat-item-body">
+        <div class="chat-item-title">${esc(u.name)}</div>
+        <div class="chat-item-preview">@${esc(u.username)}</div>
+      </div>
+    </div>`).join('');
+  resultsEl.querySelectorAll('[data-pick]').forEach((item) => {
+    item.onclick = () => onPick(Number(item.dataset.pick), item.dataset.name, item);
+  });
+}
+
+// ---- Боты ----
+
+async function openBotsModal() {
+  $('menu-dropdown').classList.add('hidden');
+  $('bot-username').value = '';
+  $('bot-name').value = '';
+  $('bot-error').classList.add('hidden');
+  await renderBotsList();
+  $('bots-modal').classList.remove('hidden');
+}
+
+async function renderBotsList() {
+  const data = await api('GET', '/api/bots');
+  $('bots-list').innerHTML = data.bots.length ? data.bots.map((b) => `
+    <div class="bot-row">
+      <div class="bot-row-top">
+        <span>🤖 ${esc(b.name)} <span class="chat-item-preview">@${esc(b.username)}</span></span>
+        <button class="icon-btn" data-del-bot="${b.userId}" title="Удалить">🗑</button>
+      </div>
+      <div class="bot-token" data-token="${esc(b.token)}" title="Нажмите, чтобы скопировать">🔑 ${esc(b.token)}</div>
+    </div>`).join('')
+    : '<div class="chat-item-preview">У вас пока нет ботов. Создайте первого — он сможет писать в чаты через REST API.</div>';
+
+  $('bots-list').querySelectorAll('[data-del-bot]').forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm('Удалить бота?')) return;
+      await api('DELETE', `/api/bots/${btn.dataset.delBot}`).catch((e) => alert(e.message));
+      renderBotsList();
+    };
+  });
+  $('bots-list').querySelectorAll('[data-token]').forEach((el) => {
+    el.onclick = () => {
+      navigator.clipboard?.writeText(el.dataset.token);
+      el.textContent = '✅ Токен скопирован';
+      setTimeout(() => { el.textContent = '🔑 ' + el.dataset.token; }, 1200);
+    };
+  });
+}
+
+async function openAiChat() {
+  $('menu-dropdown').classList.add('hidden');
+  try {
+    const { user } = await api('GET', '/api/ai-bot');
+    const data = await api('POST', '/api/chats', { type: 'direct', memberIds: [user.id] });
+    await refreshChats();
+    openChat(data.chat.id);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 // ---------- Уведомления ----------
 
 function notify(chat, m) {
@@ -1526,6 +1862,120 @@ function bindEvents() {
   $('call-video-btn').onclick = () => startCall(true);
   $('call-accept').onclick = acceptCall;
   $('call-hangup').onclick = () => endCall(true);
+
+  // Вкладки сайдбара
+  $('tab-chats').onclick = () => setSidebarTab('chats');
+  $('tab-spaces').onclick = () => setSidebarTab('spaces');
+
+  // AI-ассистент и боты
+  $('ai-chat-btn').onclick = openAiChat;
+  $('bots-btn').onclick = openBotsModal;
+  $('bots-close').onclick = () => $('bots-modal').classList.add('hidden');
+  $('bot-create').onclick = async () => {
+    try {
+      await api('POST', '/api/bots', {
+        username: $('bot-username').value.trim(),
+        name: $('bot-name').value.trim(),
+      });
+      $('bot-username').value = '';
+      $('bot-name').value = '';
+      $('bot-error').classList.add('hidden');
+      renderBotsList();
+    } catch (err) {
+      $('bot-error').textContent = err.message;
+      $('bot-error').classList.remove('hidden');
+    }
+  };
+
+  // Пространства
+  $('space-cancel').onclick = () => $('space-modal').classList.add('hidden');
+  $('space-create').onclick = async () => {
+    const name = $('space-name').value.trim();
+    if (!name) { alert('Укажите название'); return; }
+    try {
+      const data = await api('POST', '/api/spaces', {
+        name,
+        description: $('space-description').value.trim(),
+        memberIds: [...state.spaceSelected.keys()],
+      });
+      $('space-modal').classList.add('hidden');
+      await refreshSpaces();
+      setSidebarTab('spaces');
+      openSpace(data.space.id);
+    } catch (err) { alert(err.message); }
+  };
+  $('space-search').oninput = (e) => {
+    clearTimeout(spaceSearchTimer);
+    const q = e.target.value.trim();
+    spaceSearchTimer = setTimeout(() => spaceUserSearch(q, $('space-results'), (id, name) => {
+      state.spaceSelected.set(id, { id, name });
+      renderSpaceSelected();
+    }).catch(() => {}), 300);
+  };
+
+  $('space-edit-btn').onclick = async () => {
+    const space = spaceById(state.activeSpaceId);
+    if (!space) return;
+    const name = prompt('Название пространства:', space.name);
+    if (name === null) return;
+    const description = prompt('Описание:', space.description || '');
+    try {
+      await api('PUT', `/api/spaces/${space.id}`, { name: name.trim(), description });
+      await refreshSpaces();
+      renderSpaceHeader();
+    } catch (err) { alert(err.message); }
+  };
+  $('space-delete-btn').onclick = async () => {
+    const space = spaceById(state.activeSpaceId);
+    if (!space || !confirm(`Удалить пространство «${space.name}» со всеми задачами?`)) return;
+    try {
+      await api('DELETE', `/api/spaces/${space.id}`);
+      state.activeSpaceId = null;
+      $('space-view').classList.add('hidden');
+      $('empty-state').classList.remove('hidden');
+      refreshSpaces();
+    } catch (err) { alert(err.message); }
+  };
+  $('space-add-member-btn').onclick = () => {
+    $('space-member-search').value = '';
+    $('space-member-results').innerHTML = '';
+    $('space-member-modal').classList.remove('hidden');
+    $('space-member-search').focus();
+  };
+  $('space-member-cancel').onclick = () => $('space-member-modal').classList.add('hidden');
+  let spaceMemberTimer = 0;
+  $('space-member-search').oninput = (e) => {
+    clearTimeout(spaceMemberTimer);
+    const q = e.target.value.trim();
+    spaceMemberTimer = setTimeout(() => spaceUserSearch(q, $('space-member-results'),
+      async (id, name, item) => {
+        try {
+          await api('POST', `/api/spaces/${state.activeSpaceId}/members`, { userIds: [id] });
+          item.remove();
+          await refreshSpaces();
+          renderSpaceHeader();
+        } catch (err) { alert(err.message); }
+      }).catch(() => {}), 300);
+  };
+
+  // Задачи
+  document.querySelectorAll('[data-add-status]').forEach((btn) => {
+    btn.onclick = () => openTaskModal(null, btn.dataset.addStatus);
+  });
+  $('task-cancel').onclick = () => $('task-modal').classList.add('hidden');
+  $('task-save').onclick = saveTask;
+  $('task-delete').onclick = async () => {
+    if (!state.editingTask || !confirm('Удалить задачу?')) return;
+    try {
+      await api('DELETE', `/api/tasks/${state.editingTask.id}`);
+      const list = state.tasks.get(state.activeSpaceId) || [];
+      state.tasks.set(state.activeSpaceId,
+        list.filter((t) => t.id !== state.editingTask.id));
+      $('task-modal').classList.add('hidden');
+      renderBoard();
+      refreshSpaces();
+    } catch (err) { alert(err.message); }
+  };
 
   // Лайтбокс
   $('lightbox').onclick = () => $('lightbox').classList.add('hidden');

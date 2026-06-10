@@ -343,6 +343,7 @@ route('POST', '/api/chats/:id/messages', (req, params) => {
   const data = validateNewMessage(req.body || {}, chat, membership, uid);
   const message = publicMessage(messages.create(chatId, uid, data));
   hub.broadcastToChat(chatId, { type: 'message', message }, uid);
+  require('./bots').onNewMessage(message);
   return { message };
 });
 
@@ -364,6 +365,7 @@ route('POST', '/api/messages/:id/forward', (req, params) => {
     forwardFrom: m.sender_name,
   }));
   hub.broadcastToChat(targetChatId, { type: 'message', message }, uid);
+  require('./bots').onNewMessage(message);
   return { message };
 });
 
@@ -437,4 +439,4 @@ function dispatch(req) {
   throw new ApiError(404, 'Не найдено');
 }
 
-module.exports = { dispatch, ApiError };
+module.exports = { dispatch, route, requireAuth, requireMembership, canPost, ApiError };

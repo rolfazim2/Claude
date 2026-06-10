@@ -15,7 +15,8 @@ function publicUser(u) {
     bio: u.bio || '',
     avatar: u.avatar_file ? `/files/${u.avatar_file}` : null,
     lastSeen: Number(u.last_seen || 0),
-    online: hub().isOnline(Number(u.id)),
+    online: u.is_bot ? true : hub().isOnline(Number(u.id)),
+    isBot: !!u.is_bot,
     role: u.role || undefined,
   };
 }
